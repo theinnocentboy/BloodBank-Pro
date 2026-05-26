@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Requests - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="container-lg-fluid py-4">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-lg-2 ps-0">
+            <div class="admin-sidebar">
+                <ul class="list-unstyled">
+                    <li><a class="nav-link" href="/admin/dashboard"><i class="fas fa-chart-line"></i> Dashboard</a></li>
+                    <li><a class="nav-link" href="/admin/users"><i class="fas fa-users"></i> Users</a></li>
+                    <li><a class="nav-link" href="/admin/donors"><i class="fas fa-heart-pulse"></i> Donors</a></li>
+                    <li><a class="nav-link active" href="/admin/requests"><i class="fas fa-file-alt"></i> Requests</a></li>
+                    <li><a class="nav-link" href="/admin/inventory"><i class="fas fa-warehouse"></i> Inventory</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-lg-10">
+            <div class="admin-content">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2><i class="fas fa-file-alt"></i> Manage Blood Requests</h2>
+                    <span class="badge bg-red" style="background-color: #DC143C; font-size: 1rem;">{{ requests|length }} Total</span>
+                </div>
+
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>User</th>
+                                        <th>Blood Group</th>
+                                        <th>Quantity</th>
+                                        <th>Urgency</th>
+                                        <th>Status</th>
+                                        <th>Requested</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% if requests %}
+                                        {% for req in requests %}
+                                            <tr>
+                                                <td><strong>#{{ req.id }}</strong></td>
+                                                <td>{{ req.user.full_name }}</td>
+                                                <td><span class="blood-group-badge">{{ req.blood_group }}</span></td>
+                                                <td>{{ req.quantity }} units</td>
+                                                <td>
+                                                    <span class="urgency-indicator urgency-{{ req.urgency }}"></span>
+                                                    {{ req.urgency|title }}
+                                                </td>
+                                                <td><span class="status-badge status-{{ req.status }}">{{ req.status }}</span></td>
+                                                <td>{{ req.created_at.strftime('%b %d, %Y') }}</td>
+                                                <td>
+                                                    {% if req.status == 'pending' %}
+                                                        <form method="POST" style="display: inline;">
+                                                            <a href="/admin/request/{{ req.id }}/approve" class="btn btn-sm btn-success" onclick="return confirm('Approve this request?');">
+                                                                <i class="fas fa-check"></i> Approve
+                                                            </a>
+                                                        </form>
+                                                        <form method="POST" style="display: inline;">
+                                                            <a href="/admin/request/{{ req.id }}/reject" class="btn btn-sm btn-danger" onclick="return confirm('Reject this request?');">
+                                                                <i class="fas fa-times"></i> Reject
+                                                            </a>
+                                                        </form>
+                                                    {% else %}
+                                                        <span class="text-muted">-</span>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    {% else %}
+                                        <tr>
+                                            <td colspan="8" class="text-center text-muted">No requests found</td>
+                                        </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

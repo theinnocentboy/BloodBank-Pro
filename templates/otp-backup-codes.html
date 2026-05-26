@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}Save Backup Codes{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-7">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-check-circle"></i> Two-Factor Authentication Enabled!
+                    </h4>
+                </div>
+
+                <div class="card-body p-4">
+                    <div class="alert alert-success mb-4">
+                        <i class="fas fa-check-circle"></i>
+                        <strong>Success!</strong> Your two-factor authentication has been successfully enabled.
+                    </div>
+
+                    <h5 class="mb-3">
+                        <i class="fas fa-download"></i> Save Your Backup Codes
+                    </h5>
+
+                    <p class="text-muted mb-4">
+                        Keep these backup codes in a safe place. If you lose access to your authenticator app,
+                        you can use these codes to regain access to your account. Each code can only be used once.
+                    </p>
+
+                    <!-- Backup Codes Display -->
+                    <div class="bg-light p-4 rounded mb-4" style="font-family: 'Courier New', monospace;">
+                        <div class="row">
+                            {% for code in backup_codes %}
+                                <div class="col-md-6 mb-2">
+                                    <div class="d-flex align-items-center">
+                                        <span class="badge bg-secondary me-2">{{ loop.index }}</span>
+                                        <code>{{ code }}</code>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="d-grid gap-2 mb-4">
+                        <button 
+                            class="btn btn-outline-primary" 
+                            onclick="copyToClipboard()"
+                        >
+                            <i class="fas fa-copy"></i> Copy All Codes
+                        </button>
+                        <button 
+                            class="btn btn-outline-secondary" 
+                            onclick="window.print()"
+                        >
+                            <i class="fas fa-print"></i> Print Codes
+                        </button>
+                        <button 
+                            class="btn btn-outline-info" 
+                            onclick="downloadCodes()"
+                        >
+                            <i class="fas fa-download"></i> Download as Text
+                        </button>
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Important:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Store these codes somewhere secure (encrypted file, password manager, etc.)</li>
+                            <li>Never share these codes with anyone</li>
+                            <li>You won't be able to see these codes again after leaving this page</li>
+                        </ul>
+                    </div>
+
+                    <div class="text-center">
+                        <a href="{{ url_for('user.dashboard') }}" class="btn btn-success btn-lg">
+                            <i class="fas fa-check"></i> I've Saved My Codes - Continue
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyToClipboard() {
+    const codes = document.querySelectorAll('code');
+    let text = '';
+    codes.forEach(code => {
+        text += code.textContent + '\n';
+    });
+    
+    navigator.clipboard.writeText(text).then(() => {
+        alert('Backup codes copied to clipboard!');
+    }).catch(() => {
+        alert('Failed to copy codes. Please try again.');
+    });
+}
+
+function downloadCodes() {
+    const codes = document.querySelectorAll('code');
+    let text = 'Blood Bank Management - Backup Codes\n';
+    text += '====================================\n\n';
+    codes.forEach((code, index) => {
+        text += (index + 1) + '. ' + code.textContent + '\n';
+    });
+    text += '\n====================================\n';
+    text += 'Store these codes securely!\n';
+    
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'backup_codes.txt';
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+</script>
+
+<style>
+    @media print {
+        .btn, .alert-success, .text-center a {
+            display: none !important;
+        }
+        .bg-light {
+            border: 2px solid #000 !important;
+        }
+    }
+</style>
+{% endblock %}

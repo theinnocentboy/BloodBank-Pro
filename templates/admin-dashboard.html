@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - Blood Management System{% endblock %}
+
+{% block content %}
+<div class="container-lg-fluid py-4">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-lg-2 ps-0">
+            <div class="admin-sidebar">
+                <ul class="list-unstyled">
+                    <li><a class="nav-link active" href="/admin/dashboard"><i class="fas fa-chart-line"></i> Dashboard</a></li>
+                    <li><a class="nav-link" href="/admin/users"><i class="fas fa-users"></i> Users</a></li>
+                    <li><a class="nav-link" href="/admin/donors"><i class="fas fa-heart-pulse"></i> Donors</a></li>
+                    <li><a class="nav-link" href="/admin/requests"><i class="fas fa-file-alt"></i> Requests</a></li>
+                    <li><a class="nav-link" href="/admin/inventory"><i class="fas fa-warehouse"></i> Inventory</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-lg-10">
+            <div class="admin-content">
+                <h1 class="mb-4"><i class="fas fa-tachometer-alt"></i> Admin Dashboard</h1>
+
+                <!-- Stats -->
+                <div class="row mb-4">
+                    <div class="col-md-3 col-sm-6">
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-users"></i></div>
+                            <div class="stat-number">{{ stats.total_users }}</div>
+                            <div class="stat-label">Total Users</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-heart-pulse"></i></div>
+                            <div class="stat-number">{{ stats.total_donors }}</div>
+                            <div class="stat-label">Active Donors</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-file-alt"></i></div>
+                            <div class="stat-number">{{ stats.total_requests }}</div>
+                            <div class="stat-label">Total Requests</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-clock"></i></div>
+                            <div class="stat-number">{{ stats.pending_requests }}</div>
+                            <div class="stat-label">Pending</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Row -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="chart-container">
+                            <canvas id="bloodInventoryChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="chart-container">
+                            <canvas id="requestsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Requests -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-list"></i> Recent Blood Requests</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>User</th>
+                                                <th>Blood Group</th>
+                                                <th>Quantity</th>
+                                                <th>Urgency</th>
+                                                <th>Status</th>
+                                                <th>Date</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% if recent_requests %}
+                                                {% for req in recent_requests %}
+                                                    <tr>
+                                                        <td>{{ req.user.full_name }}</td>
+                                                        <td><span class="blood-group-badge">{{ req.blood_group }}</span></td>
+                                                        <td>{{ req.quantity }} units</td>
+                                                        <td>
+                                                            <span class="urgency-indicator urgency-{{ req.urgency }}"></span>
+                                                            {{ req.urgency|title }}
+                                                        </td>
+                                                        <td><span class="status-badge status-{{ req.status }}">{{ req.status }}</span></td>
+                                                        <td>{{ req.created_at.strftime('%b %d, %Y') }}</td>
+                                                    </tr>
+                                                {% endfor %}
+                                            {% else %}
+                                                <tr>
+                                                    <td colspan="6" class="text-center text-muted">No requests yet</td>
+                                                </tr>
+                                            {% endif %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    // Blood Inventory Chart
+    const ctx1 = document.getElementById('bloodInventoryChart').getContext('2d');
+    new Chart(ctx1, {
+        type: 'bar',
+        data: {
+            labels: {{ stats.blood_groups | tojson }},
+            datasets: [{
+                label: 'Available Units',
+                data: [45, 38, 52, 30, 48, 35, 42, 28],
+                backgroundColor: '#DC143C',
+                borderColor: '#8B0000',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                },
+                title: {
+                    display: true,
+                    text: 'Blood Inventory'
+                }
+            }
+        }
+    });
+
+    // Requests Chart
+    const ctx2 = document.getElementById('requestsChart').getContext('2d');
+    new Chart(ctx2, {
+        type: 'doughnut',
+        data: {
+            labels: ['Approved', 'Pending', 'Rejected'],
+            datasets: [{
+                data: [65, 20, 15],
+                backgroundColor: ['#28A745', '#FFC107', '#DC3545'],
+                borderColor: '#fff',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'bottom'
+                },
+                title: {
+                    display: true,
+                    text: 'Request Status'
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %}
