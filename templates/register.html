@@ -11,21 +11,6 @@
                     <h3 class="mb-0"><i class="fas fa-user-plus"></i> Create Account</h3>
                 </div>
                 <div class="card-body p-4">
-                    <!-- Social Login Section -->
-                    <div class="mb-4">
-                        <label class="form-label small mb-2 d-block text-center"><strong>Quick Sign Up (No typing required):</strong></label>
-                        <div class="d-grid gap-2">
-                            <a href="{{ url_for('auth.login_with_auth0', provider='google') }}" class="btn btn-outline-danger">
-                                <i class="fab fa-google"></i> Sign up with Google
-                            </a>
-                            <a href="{{ url_for('auth.login_with_auth0', provider='facebook') }}" class="btn btn-outline-info">
-                                <i class="fab fa-facebook"></i> Sign up with Facebook
-                            </a>
-                        </div>
-                    </div>
-                    <hr class="my-3">
-                    <p class="text-center text-muted small mb-3">Or create an account manually</p>
-
                     <!-- Standard Registration Form -->
                     <form method="POST" action="/register">
                         <div class="row mb-3">
@@ -75,6 +60,22 @@
                             <i class="fas fa-check"></i> Create Account
                         </button>
                     </form>
+
+                    <!-- Auth0 Social Login (if enabled) -->
+                    {% if config.AUTH0_DOMAIN and config.AUTH0_CLIENT_ID %}
+                    <div class="text-center mb-3">
+                        <small class="text-muted">Or sign up with</small>
+                    </div>
+                    <div class="d-flex gap-2 mb-3">
+                        <a href="{{ url_for('auth.login_with_auth0', provider='google-oauth2') }}" class="btn btn-outline-secondary w-100" title="Sign up with Google">
+                            <i class="fab fa-google"></i> Google
+                        </a>
+                        <a href="{{ url_for('auth.login_with_auth0', provider='facebook') }}" class="btn btn-outline-secondary w-100" title="Sign up with Facebook">
+                            <i class="fab fa-facebook"></i> Facebook
+                        </a>
+                    </div>
+                    {% endif %}
+                    
                     <hr>
                     <p class="text-center mb-0">
                         Already have an account? 

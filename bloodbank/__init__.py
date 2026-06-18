@@ -1,17 +1,18 @@
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load environment variables from .env file BEFORE importing config
+env_file = BASE_DIR / ".env"
+load_dotenv(dotenv_path=str(env_file))
 
 from flask import Flask
-from dotenv import load_dotenv
 
 from bloodbank.config import Config
 from bloodbank.extensions import db
 from bloodbank.seed import seed_database
-
-# Load environment variables from .env file
-load_dotenv()
-
-BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 def create_app(config_class=Config):

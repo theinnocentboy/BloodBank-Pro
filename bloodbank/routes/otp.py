@@ -156,9 +156,9 @@ def regenerate_backup_codes():
 
 @otp_bp.route("/send-manual-code", methods=["POST"])
 def send_manual_otp_code():
-    """Send manual OTP code to user email (for login).
-    
-    This endpoint is called during login if user forgot authenticator.
+    """Reset/manual OTP fallback endpoint.
+
+    SMTP-based OTP delivery is disabled in the current configuration.
     """
     pending_user_id = session.get("pending_user_id")
     
@@ -171,16 +171,7 @@ def send_manual_otp_code():
         flash("User not found.", "danger")
         return redirect(url_for("auth.login"))
     
-    # Generate and store manual OTP
-    from bloodbank.otp_utils import generate_manual_otp_code, get_otp_expiry_time
-    otp_code = generate_manual_otp_code()
-    user.manual_otp_code = otp_code
-    user.manual_otp_expires_at = get_otp_expiry_time(300)  # 5 minutes
-    
-    db.session.commit()
-    
-    # TODO: Send OTP code via email
-    # For now, we'll just show a message
-    flash(f"OTP code sent to your email: {user.email}", "info")
+    # Email delivery is intentionally disabled after SMTP reset.
+    flash("Email-based OTP delivery is disabled. Use your authenticator app or a backup code.", "warning")
     
     return redirect(url_for("auth.verify_otp"))

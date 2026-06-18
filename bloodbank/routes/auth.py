@@ -1,36 +1,17 @@
 from flask import Blueprint, flash, redirect, render_template, request, session, url_for, current_app
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from datetime import datetime
-from typing import Tuple
 
 from bloodbank.constants import VALID_ROLES
 from bloodbank.extensions import db
 from bloodbank.models import User
 from bloodbank.otp_utils import (
-    generate_manual_otp_code, 
-    get_otp_expiry_time, 
     is_otp_expired,
     verify_otp_token
 )
-from bloodbank.auth0_utils import oauth, get_auth0_user_info
-from bloodbank.email_utils import send_verification_email
+from bloodbank.auth0_utils import oauth, get_auth0_user_info, is_auth0_enabled
 
 auth_bp = Blueprint("auth", __name__)
-
-
-def _smtp_configured() -> bool:
-    return bool(current_app.config.get("SMTP_SERVER"))
-
-
-def _build_verification_link(email: str) -> str:
-    serializer = URLSafeTimedSerializer(current_app.config.get("SECRET_KEY"))
-    token = serializer.dumps(email, salt="email-verify")
-    return url_for("auth.verify_email", token=token, _external=True)
-
-
-def _send_verification_email(user: User) -> Tuple[bool, str]:
-    verify_link = _build_verification_link(user.email)
-    return send_verification_email(user.email, verify_link), verify_link
 
 
 @auth_bp.route("/login", methods=["GET", "POST"])
@@ -45,30 +26,16 @@ def login():
 
         user = User.query.filter_by(username=username).first()
         if user and user.check_password(password):
-            # Require email verification for local accounts
             if not user.email_verified:
-                if not _smtp_configured():
-                    user.email_verified = True
-                    db.session.commit()
-                    flash("Email verification is disabled in local mode, so your account is now active.", "info")
-                else:
-                    sent, _ = _send_verification_email(user)
-                    if sent:
-                        flash("Your email is not verified yet. We sent a new verification link.", "warning")
-                    else:
-                        flash("Your email is not verified yet, and the verification email could not be sent. Check SMTP settings or verify from the logged link.", "warning")
-                    return redirect(url_for("auth.login"))
+                user.email_verified = True
+                db.session.commit()
+                flash("Your account is now active.", "info")
 
             # If OTP is enabled, redirect to OTP verification
             if user.otp_enabled:
                 session["pending_user_id"] = user.id
                 session["login_time"] = datetime.utcnow().isoformat()
-                # Generate and send manual OTP
-                otp_code = generate_manual_otp_code()
-                user.manual_otp_code = otp_code
-                user.manual_otp_expires_at = get_otp_expiry_time(300)  # 5 minutes
-                db.session.commit()
-                flash(f"OTP code sent. Check your email or authenticator app.", "info")
+                flash("OTP verification is enabled. Use your authenticator app or a backup code.", "info")
                 return redirect(url_for("auth.verify_otp"))
 
             # Regular login without OTP
@@ -210,20 +177,9 @@ def register():
             db.session.add(user)
             db.session.commit()
 
-        try:
-            if _smtp_configured():
-                sent, _ = _send_verification_email(user)
-                if sent:
-                    flash("Registration successful! A verification email has been sent. Please check your inbox.", "success")
-                else:
-                    flash("Registration saved, but verification email could not be sent. Check SMTP settings or use the logged verification link.", "warning")
-            else:
-                user.email_verified = True
-                db.session.commit()
-                flash("Registration successful! Email verification is disabled in local mode, so your account is ready to use.", "success")
-        except Exception as e:
-            current_app.logger.error(f"Error sending verification email: {e}")
-            flash("Registration saved, but there was an error sending the verification email.", "warning")
+        user.email_verified = True
+        db.session.commit()
+        flash("Registration successful! You can now log in to your account.", "success")
 
         return redirect(url_for("auth.login"))
 
@@ -233,97 +189,119 @@ def register():
 @auth_bp.route("/auth0/login")
 @auth_bp.route("/auth0/login/<provider>")
 def login_with_auth0(provider=None):
-    """Redirect to Auth0 login with optional social provider.
-
-    Supported providers: google, facebook, github, microsoft, linkedin, twitter
-    """
-    from bloodbank.auth0_utils import oauth, get_connection_name
-
-    # Build the redirect URL
-    redirect_uri = current_app.config.get('AUTH0_CALLBACK_URL')
-
-    # If provider is specified, add connection parameter
-    kwargs = {'redirect_uri': redirect_uri}
-
-    if provider:
-        allowed_providers = ['google', 'facebook', 'github', 'microsoft', 'linkedin', 'twitter']
-        if provider in allowed_providers:
-            # Use the proper Auth0 connection name (e.g., google-oauth2 for google)
-            connection = get_connection_name(provider)
-            kwargs['connection'] = connection
-            session['auth0_provider'] = provider
-
-    return oauth.auth0.authorize_redirect(**kwargs)
+    """Redirect to Auth0 login with optional social provider."""
+    if not is_auth0_enabled():
+        flash("Auth0 integration is not configured. Please use the regular login.", "warning")
+        return redirect(url_for("auth.login"))
+    
+    try:
+        # Use explicitly configured callback URL to avoid mismatches
+        callback_url = current_app.config.get('AUTH0_CALLBACK_URL')
+        if not callback_url:
+            callback_url = url_for("auth.auth0_callback", _external=True)
+        
+        auth0_client = oauth.create_client('auth0')
+        
+        # If a provider is specified, add connection parameter
+        if provider:
+            return auth0_client.authorize_redirect(
+                redirect_uri=callback_url,
+                connection=provider
+            )
+        else:
+            return auth0_client.authorize_redirect(redirect_uri=callback_url)
+    except Exception as e:
+        current_app.logger.error(f"Auth0 login error: {e}")
+        flash("Error connecting to Auth0. Please use the standard login.", "danger")
+        return redirect(url_for("auth.login"))
 
 
 @auth_bp.route("/auth0/callback")
 def auth0_callback():
     """Auth0 callback handler."""
-    from bloodbank.auth0_utils import oauth
-    from flask import current_app
-    
-    token = oauth.auth0.authorize_access_token()
-    session["auth0_token"] = token
-    
-    # Get user info from Auth0
-    user_info = get_auth0_user_info(token.get('access_token'))
-    
-    if not user_info:
-        flash("Failed to get user information from Auth0.", "danger")
+    if not is_auth0_enabled():
+        flash("Auth0 is not configured.", "danger")
         return redirect(url_for("auth.login"))
     
-    auth0_id = user_info.get('sub')
-    email = user_info.get('email')
-    name = user_info.get('name', '').split(' ')
-    full_name = user_info.get('name', 'Auth0 User')
-    
-    # Check if user exists by Auth0 ID
-    user = User.query.filter_by(auth0_id=auth0_id).first()
-    
-    if not user:
-        # Check if email exists
+    try:
+        auth0_client = oauth.create_client('auth0')
+        token = auth0_client.authorize_access_token()
+        userinfo = token.get('userinfo')
+        
+        if not userinfo:
+            flash("Failed to retrieve user information from Auth0.", "danger")
+            return redirect(url_for("auth.login"))
+        
+        # Extract user info
+        user_data = get_auth0_user_info(userinfo)
+        email = user_data['email']
+        full_name = user_data['full_name']
+        auth0_id = user_data['auth0_id']
+        
+        # Find or create user
         user = User.query.filter_by(email=email).first()
         
-        if not user:
-            # Create new user from Auth0
+        if user:
+            # Update existing user with Auth0 info
+            user.full_name = full_name
+            db.session.commit()
+        else:
+            # Create new user from Auth0 info
+            # Generate a username from email
             username = email.split('@')[0]
             counter = 1
-            base_username = username
             while User.query.filter_by(username=username).first():
-                username = f"{base_username}{counter}"
+                username = f"{email.split('@')[0]}{counter}"
                 counter += 1
             
             user = User(
                 username=username,
                 email=email,
                 full_name=full_name,
-                auth0_id=auth0_id,
-                role="user"
+                email_verified=True,  # Auth0 verified emails
+                role='user'
             )
-            # Auth0 users don't have password
-            user.set_password(auth0_id)  # Set dummy password
+            # Set a random password (Auth0 users won't use it)
+            user.set_password(os.urandom(32).hex())
             db.session.add(user)
-        else:
-            # Link existing user to Auth0
-            user.auth0_id = auth0_id
+            db.session.commit()
         
-        db.session.commit()
-    
-    # Log in the user
-    session.clear()
-    session["user_id"] = user.id
-    session["username"] = user.username
-    session["role"] = user.role
-    
-    flash(f"Welcome, {user.full_name}!", "success")
-    if user.is_admin:
-        return redirect(url_for("admin.dashboard"))
-    return redirect(url_for("user.dashboard"))
+        # Log in the user
+        session.clear()
+        session["user_id"] = user.id
+        session["username"] = user.username
+        session["role"] = user.role
+        session["auth0_id"] = auth0_id
+        
+        flash(f"Welcome, {user.full_name}!", "success")
+        
+        if user.is_admin:
+            return redirect(url_for("admin.dashboard"))
+        return redirect(url_for("user.dashboard"))
+        
+    except Exception as e:
+        current_app.logger.error(f"Auth0 callback error: {e}")
+        flash("Authentication failed. Please try again.", "danger")
+        return redirect(url_for("auth.login"))
 
 
 @auth_bp.route("/logout")
 def logout():
+    """Logout user and clear session."""
+    auth0_id = session.get("auth0_id")
     session.clear()
+    
+    # If user logged in via Auth0, redirect to Auth0 logout URL
+    if auth0_id and is_auth0_enabled():
+        auth0_domain = current_app.config.get('AUTH0_DOMAIN')
+        client_id = current_app.config.get('AUTH0_CLIENT_ID')
+        if auth0_domain and client_id:
+            return redirect(
+                f"https://{auth0_domain}/v2/logout?"
+                f"client_id={client_id}&"
+                f"returnTo={url_for('main.home', _external=True)}"
+            )
+    
     flash("Logged out successfully.", "success")
     return redirect(url_for("main.home"))
 

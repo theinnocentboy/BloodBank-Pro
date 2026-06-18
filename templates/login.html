@@ -27,28 +27,24 @@
                         </button>
                     </form>
 
-                    <hr class="my-3">
-
-                    <!-- Auth0 Social Login -->
-                    <div class="mb-3">
-                        <label class="form-label small mb-2 d-block"><strong>Quick Login (No typing required):</strong></label>
-                        <div class="d-grid gap-2">
-                            <a href="{{ url_for('auth.login_with_auth0', provider='google') }}" class="btn btn-outline-danger">
-                                <i class="fab fa-google"></i> Sign in with Google
-                            </a>
-                            <a href="{{ url_for('auth.login_with_auth0', provider='facebook') }}" class="btn btn-outline-info">
-                                <i class="fab fa-facebook"></i> Sign in with Facebook
-                            </a>
-                            <a href="{{ url_for('auth.login_with_auth0', provider='github') }}" class="btn btn-outline-dark">
-                                <i class="fab fa-github"></i> Sign in with GitHub
-                            </a>
-                            <a href="{{ url_for('auth.login_with_auth0', provider='microsoft') }}" class="btn btn-outline-primary">
-                                <i class="fab fa-windows"></i> Sign in with Microsoft
-                            </a>
-                        </div>
+                    <!-- Auth0 Social Login (if enabled) -->
+                    {% if config.AUTH0_DOMAIN and config.AUTH0_CLIENT_ID %}
+                    <div class="d-flex gap-2 mb-3">
+                        <a href="{{ url_for('auth.login_with_auth0', provider='google-oauth2') }}" class="btn btn-outline-secondary w-100" title="Login with Google">
+                            <i class="fab fa-google"></i>
+                        </a>
+                        <a href="{{ url_for('auth.login_with_auth0', provider='facebook') }}" class="btn btn-outline-secondary w-100" title="Login with Facebook">
+                            <i class="fab fa-facebook"></i>
+                        </a>
                     </div>
+                    <div class="text-center mb-3">
+                        <small class="text-muted">Or login with</small>
+                    </div>
+                    <a href="{{ url_for('auth.login_with_auth0') }}" class="btn btn-info w-100 mb-3">
+                        <i class="fas fa-lock"></i> Auth0
+                    </a>
+                    {% endif %}
 
-                    <hr class="my-3">
 
                     <p class="text-center mb-0">
                         Don't have an account? 
