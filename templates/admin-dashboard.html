@@ -3,7 +3,6 @@
 {% block title %}Admin Dashboard - Blood Management System{% endblock %}
 
 {% block content %}
-<<<<<<< HEAD
 <div class="container-fluid py-4">
     <div class="row g-0">
         <div class="col-lg-2 ps-0">
@@ -31,65 +30,27 @@
                 <div class="row g-3 mb-4">
                     <div class="col-md-3 col-sm-6">
                         <div class="stat-card h-100">
-=======
-<div class="container-lg-fluid py-4">
-    <div class="row">
-        <!-- Sidebar -->
-        <div class="col-lg-2 ps-0">
-            <div class="admin-sidebar">
-                <ul class="list-unstyled">
-                    <li><a class="nav-link active" href="/admin/dashboard"><i class="fas fa-chart-line"></i> Dashboard</a></li>
-                    <li><a class="nav-link" href="/admin/users"><i class="fas fa-users"></i> Users</a></li>
-                    <li><a class="nav-link" href="/admin/donors"><i class="fas fa-heart-pulse"></i> Donors</a></li>
-                    <li><a class="nav-link" href="/admin/requests"><i class="fas fa-file-alt"></i> Requests</a></li>
-                    <li><a class="nav-link" href="/admin/inventory"><i class="fas fa-warehouse"></i> Inventory</a></li>
-                </ul>
-            </div>
-        </div>
-
-        <!-- Main Content -->
-        <div class="col-lg-10">
-            <div class="admin-content">
-                <h1 class="mb-4"><i class="fas fa-tachometer-alt"></i> Admin Dashboard</h1>
-
-                <!-- Stats -->
-                <div class="row mb-4">
-                    <div class="col-md-3 col-sm-6">
-                        <div class="stat-card">
->>>>>>> 606101da4c4b45756b7fe58d0b68d97f7abeceea
                             <div class="stat-icon"><i class="fas fa-users"></i></div>
                             <div class="stat-number">{{ stats.total_users }}</div>
                             <div class="stat-label">Total Users</div>
                         </div>
                     </div>
                     <div class="col-md-3 col-sm-6">
-<<<<<<< HEAD
                         <div class="stat-card h-100">
-=======
-                        <div class="stat-card">
->>>>>>> 606101da4c4b45756b7fe58d0b68d97f7abeceea
                             <div class="stat-icon"><i class="fas fa-heart-pulse"></i></div>
                             <div class="stat-number">{{ stats.total_donors }}</div>
                             <div class="stat-label">Active Donors</div>
                         </div>
                     </div>
                     <div class="col-md-3 col-sm-6">
-<<<<<<< HEAD
                         <div class="stat-card h-100">
-=======
-                        <div class="stat-card">
->>>>>>> 606101da4c4b45756b7fe58d0b68d97f7abeceea
                             <div class="stat-icon"><i class="fas fa-file-alt"></i></div>
                             <div class="stat-number">{{ stats.total_requests }}</div>
                             <div class="stat-label">Total Requests</div>
                         </div>
                     </div>
                     <div class="col-md-3 col-sm-6">
-<<<<<<< HEAD
                         <div class="stat-card h-100">
-=======
-                        <div class="stat-card">
->>>>>>> 606101da4c4b45756b7fe58d0b68d97f7abeceea
                             <div class="stat-icon"><i class="fas fa-clock"></i></div>
                             <div class="stat-number">{{ stats.pending_requests }}</div>
                             <div class="stat-label">Pending</div>
@@ -97,19 +58,12 @@
                     </div>
                 </div>
 
-<<<<<<< HEAD
                 <div class="row g-3 mb-4">
                     <div class="col-md-6">
                         <div class="chart-container">
                             <div id="inventoryChartData"
                                  data-labels='{{ inventory | map(attribute="blood_group") | list | tojson | safe }}'
                                  data-units='{{ inventory | map(attribute="units") | list | tojson | safe }}'></div>
-=======
-                <!-- Charts Row -->
-                <div class="row mb-4">
-                    <div class="col-md-6">
-                        <div class="chart-container">
->>>>>>> 606101da4c4b45756b7fe58d0b68d97f7abeceea
                             <canvas id="bloodInventoryChart"></canvas>
                         </div>
                     </div>
@@ -120,7 +74,6 @@
                     </div>
                 </div>
 
-<<<<<<< HEAD
                 <div class="row">
                     <div class="col-12">
                         <div class="card shadow-sm border-0">
@@ -130,18 +83,6 @@
                             <div class="card-body p-0">
                                 <div class="table-responsive">
                                     <table class="table table-hover align-middle mb-0">
-=======
-                <!-- Recent Requests -->
-                <div class="row">
-                    <div class="col-12">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5 class="mb-0"><i class="fas fa-list"></i> Recent Blood Requests</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="table-responsive">
-                                    <table class="table table-hover">
->>>>>>> 606101da4c4b45756b7fe58d0b68d97f7abeceea
                                         <thead>
                                             <tr>
                                                 <th>User</th>
@@ -169,11 +110,7 @@
                                                 {% endfor %}
                                             {% else %}
                                                 <tr>
-<<<<<<< HEAD
                                                     <td colspan="6" class="text-center text-muted py-5">No requests yet</td>
-=======
-                                                    <td colspan="6" class="text-center text-muted">No requests yet</td>
->>>>>>> 606101da4c4b45756b7fe58d0b68d97f7abeceea
                                                 </tr>
                                             {% endif %}
                                         </tbody>
@@ -183,7 +120,6 @@
                         </div>
                     </div>
                 </div>
-<<<<<<< HEAD
             </main>
         </div>
     </div>
@@ -196,31 +132,14 @@
     const inventoryLabels = JSON.parse(inventoryChartData.dataset.labels || '[]');
     const inventoryUnits = JSON.parse(inventoryChartData.dataset.units || '[]');
 
-=======
-            </div>
-        </div>
-    </div>
-</div>
-
-{% block extra_js %}
-<script>
->>>>>>> 606101da4c4b45756b7fe58d0b68d97f7abeceea
-    // Blood Inventory Chart
     const ctx1 = document.getElementById('bloodInventoryChart').getContext('2d');
     new Chart(ctx1, {
         type: 'bar',
         data: {
-<<<<<<< HEAD
             labels: inventoryLabels,
             datasets: [{
                 label: 'Available Units',
                 data: inventoryUnits,
-=======
-            labels: {{ stats.blood_groups | tojson }},
-            datasets: [{
-                label: 'Available Units',
-                data: [45, 38, 52, 30, 48, 35, 42, 28],
->>>>>>> 606101da4c4b45756b7fe58d0b68d97f7abeceea
                 backgroundColor: '#DC143C',
                 borderColor: '#8B0000',
                 borderWidth: 2
@@ -242,7 +161,6 @@
         }
     });
 
-    // Requests Chart
     const ctx2 = document.getElementById('requestsChart').getContext('2d');
     new Chart(ctx2, {
         type: 'doughnut',
@@ -272,7 +190,3 @@
     });
 </script>
 {% endblock %}
-<<<<<<< HEAD
-=======
-{% endblock %}
->>>>>>> 606101da4c4b45756b7fe58d0b68d97f7abeceea
