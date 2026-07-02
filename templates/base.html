@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Blood Management System{% endblock %}</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-custom">
+        <div class="container-lg">
+            <a class="navbar-brand" href="{{ url_for('main.home') }}">
+                <i class="fas fa-droplet"></i> BloodBank
+            </a>
+            <button class="navbar-toggler btn-close" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation" style="filter: brightness(0) invert(1);"></button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    {% if session.get('user_id') %}
+                        {% if session.get('role') == 'admin' %}
+                            <li class="nav-item"><a class="nav-link" href="{{ url_for('admin.dashboard') }}">Dashboard</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{{ url_for('admin.users') }}">Users</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{{ url_for('admin.donors') }}">Donors</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{{ url_for('admin.requests') }}">Requests</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{{ url_for('admin.inventory') }}">Inventory</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{{ url_for('main.chatbot') }}">AI Assistant</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{{ url_for('user.profile') }}">Profile</a></li>
+                        {% else %}
+                            <li class="nav-item"><a class="nav-link" href="{{ url_for('user.dashboard') }}">Dashboard</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{{ url_for('donor.search_donors') }}">Find Donors</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{{ url_for('donor.donor_list') }}">Donor List</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{{ url_for('user.request_blood') }}">Request Blood</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{{ url_for('main.chatbot') }}">AI Assistant</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{{ url_for('user.profile') }}">Profile</a></li>
+                        {% endif %}
+                        <li class="nav-item">
+                            <a class="nav-link btn btn-logout ms-2" href="{{ url_for('auth.logout') }}">Logout</a>
+                        </li>
+                    {% else %}
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('donor.search_donors') }}">Find Donors</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('main.chatbot') }}">AI Assistant</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.login') }}">Login</a></li>
+                        <li class="nav-item">
+                            <a class="nav-link btn btn-primary-red ms-2" href="{{ url_for('auth.register') }}">Register</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-lg mt-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="mt-5">
+        <div class="container-lg">
+            <div class="row">
+                <div class="col-md-4 mb-4">
+                    <h5><i class="fas fa-droplet"></i> BloodBank</h5>
+                    <p>Saving lives through blood donations.</p>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <h6>Quick Links</h6>
+                    <ul class="list-unstyled">
+                        <li><a href="{{ url_for('donor.search_donors') }}">Find Donors</a></li>
+                        <li><a href="{{ url_for('user.request_blood') }}">Request Blood</a></li>
+                        <li><a href="{{ url_for('donor.register_donor') }}">Become a Donor</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <h6>Contact</h6>
+                    <p>Email: support@bloodbank.local<br>Phone: +91 555-123-4567</p>
+                </div>
+            </div>
+            <hr>
+            <p class="text-center mb-0">&copy; BloodBank. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

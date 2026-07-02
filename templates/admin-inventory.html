@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Blood Inventory - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="container-lg-fluid py-4">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-lg-2 ps-0">
+            <div class="admin-sidebar">
+                <ul class="list-unstyled">
+                    <li><a class="nav-link" href="/admin/dashboard"><i class="fas fa-chart-line"></i> Dashboard</a></li>
+                    <li><a class="nav-link" href="/admin/users"><i class="fas fa-users"></i> Users</a></li>
+                    <li><a class="nav-link" href="/admin/donors"><i class="fas fa-heart-pulse"></i> Donors</a></li>
+                    <li><a class="nav-link" href="/admin/requests"><i class="fas fa-file-alt"></i> Requests</a></li>
+                    <li><a class="nav-link active" href="/admin/inventory"><i class="fas fa-warehouse"></i> Inventory</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-lg-10">
+            <div class="admin-content">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2><i class="fas fa-warehouse"></i> Blood Inventory</h2>
+                </div>
+
+                <div class="row mb-4">
+                    {% for item in inventory %}
+                        <div class="col-md-3 col-sm-6 mb-3">
+                            <div class="card">
+                                <div class="card-body text-center">
+                                    <div class="blood-group-badge" style="font-size: 2rem; padding: 1rem 2rem; margin-bottom: 1rem;">{{ item.blood_group }}</div>
+                                    <div style="font-size: 1.8rem; font-weight: 700; color: #DC143C;">{{ item.units }} Units</div>
+                                    <small class="text-muted">Available</small>
+                                    <div class="mt-3" style="border-top: 1px solid #E9ECEF; padding-top: 0.5rem;">
+                                        <small style="color: #6c757d;">Last Updated: {{ item.last_updated.strftime('%b %d, %Y %I:%M %p') if item.last_updated else 'N/A' }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-edit"></i> Update Inventory</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Blood Group</th>
+                                        <th>Current Units</th>
+                                        <th>Status</th>
+                                        <th>Last Updated</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% if inventory %}
+                                        {% for item in inventory %}
+                                            <tr>
+                                                <td>
+                                                    <span class="blood-group-badge">{{ item.blood_group }}</span>
+                                                </td>
+                                                <td><strong>{{ item.units }} units</strong></td>
+                                                <td>
+                                                    {% if item.units > 30 %}
+                                                        <span class="badge bg-success">Adequate</span>
+                                                    {% elif item.units > 10 %}
+                                                        <span class="badge bg-warning">Low</span>
+                                                    {% else %}
+                                                        <span class="badge bg-danger">Critical</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>{{ item.last_updated.strftime('%b %d, %Y %I:%M %p') if item.last_updated else 'N/A' }}</td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#updateModal" onclick="setInventoryId({{ item.id }}); setCurrentUnits({{ item.units }});">
+                                                        <i class="fas fa-edit"></i> Update
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    {% else %}
+                                        <tr>
+                                            <td colspan="5" class="text-center text-muted">No inventory data</td>
+                                        </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Update Modal -->
+<div class="modal fade" id="updateModal" tabindex="-1" aria-labelledby="updateModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="updateModalLabel"><i class="fas fa-edit"></i> Update Inventory</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" id="updateForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="units" class="form-label">Number of Units</label>
+                        <input type="number" class="form-control" id="units" name="units" min="0" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary-red">
+                        <i class="fas fa-save"></i> Update
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function setInventoryId(id) {
+        document.getElementById('updateForm').action = '/admin/inventory/update/' + id;
+    }
+    
+    function setCurrentUnits(units) {
+        document.getElementById('units').value = units;
+    }
+</script>
+{% endblock %}

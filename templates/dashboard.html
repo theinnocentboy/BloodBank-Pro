@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Blood Management System{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="container-lg">
+        <!-- Welcome Header -->
+        <div class="dashboard-header mb-4 d-flex flex-wrap justify-content-between align-items-start gap-2">
+            <div>
+                <h1><i class="fas fa-tachometer-alt"></i> Dashboard</h1>
+                <p class="mb-0">Welcome back, <strong>{{ user.full_name }}</strong>!</p>
+            </div>
+            <a href="{{ url_for('user.profile') }}" class="btn btn-outline-danger">
+                <i class="fas fa-user-gear"></i> Profile settings
+            </a>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="row mb-4">
+            <div class="col-md-3 col-sm-6">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-file-alt"></i></div>
+                    <div class="stat-number">{{ stats.total_requests }}</div>
+                    <div class="stat-label">Total Requests</div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-clock"></i></div>
+                    <div class="stat-number">{{ stats.pending }}</div>
+                    <div class="stat-label">Pending</div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+                    <div class="stat-number">{{ stats.approved }}</div>
+                    <div class="stat-label">Approved</div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-droplet"></i></div>
+                    <div class="stat-number">{% if stats.is_donor %}Yes{% else %}No{% endif %}</div>
+                    <div class="stat-label">Donor Status</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Actions -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-syringe"></i> Blood Request</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>Need blood urgently? Submit a request and we'll help connect you with available donors.</p>
+                        <a href="{{ url_for('user.request_blood') }}" class="btn btn-primary-red">
+                            <i class="fas fa-arrow-right"></i> Request Blood
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-hand-holding-heart"></i> Become a Donor</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>{% if stats.is_donor %}You are registered as a donor. Thank you for your contribution!{% else %}Save lives by becoming a blood donor today.{% endif %}</p>
+                        {% if not stats.is_donor %}
+                            <a href="{{ url_for('donor.register_donor') }}" class="btn btn-primary-red">
+                                <i class="fas fa-arrow-right"></i> Register as Donor
+                            </a>
+                        {% else %}
+                            <a href="{{ url_for('user.profile') }}" class="btn btn-outline-danger">
+                                <i class="fas fa-user"></i> View Profile
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Requests -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-history"></i> Your Blood Requests</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if requests %}
+                            {% for request in requests %}
+                                <div class="request-card {% if request.urgency == 'urgent' %}urgent{% elif request.urgency == 'critical' %}critical{% endif %}">
+                                    <div class="request-header">
+                                        <h6 class="request-title">
+                                            <span class="urgency-indicator urgency-{{ request.urgency }}"></span>
+                                            Blood Group: 
+                                            <span class="blood-group-badge">{{ request.blood_group }}</span>
+                                        </h6>
+                                        <span class="status-badge status-{{ request.status }}">{{ request.status }}</span>
+                                    </div>
+                                    <div class="request-details">
+                                        <div class="request-detail-item">
+                                            <small>Quantity</small>
+                                            <strong>{{ request.quantity }} Units</strong>
+                                        </div>
+                                        <div class="request-detail-item">
+                                            <small>Urgency</small>
+                                            <strong>{{ request.urgency|title }}</strong>
+                                        </div>
+                                        <div class="request-detail-item">
+                                            <small>Requested</small>
+                                            <strong>{{ request.created_at.strftime('%b %d, %Y') }}</strong>
+                                        </div>
+                                    </div>
+                                    {% if request.reason %}
+                                        <p class="mb-0" style="color: #6c757d; font-size: 0.9rem;">
+                                            <strong>Reason:</strong> {{ request.reason }}
+                                        </p>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="empty-state">
+                                <i class="fas fa-inbox"></i>
+                                <h3>No Requests Yet</h3>
+                                <p>You haven't made any blood requests. <a href="{{ url_for('user.request_blood') }}" style="color: #DC143C;">Submit a request</a></p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

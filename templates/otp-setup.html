@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}Setup Two-Factor Authentication{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-7">
+            <div class="card shadow">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-shield-alt"></i> Setup Two-Factor Authentication
+                    </h4>
+                </div>
+
+                <div class="card-body p-4">
+                    {% if step == "generate" %}
+                        <div class="alert alert-info">
+                            <strong>Step 1 of 2:</strong> Generate Secret Key
+                        </div>
+
+                        <p class="text-muted mb-4">
+                            Two-factor authentication adds an extra layer of security to your account.
+                            You'll need to enter a code from your authenticator app when logging in.
+                        </p>
+
+                        <div class="mb-4 text-center">
+                            <p class="text-muted mb-3">Click the button below to generate your secret key:</p>
+                            <form method="POST">
+                                <input type="hidden" name="action" value="generate_secret">
+                                <button type="submit" class="btn btn-danger btn-lg">
+                                    <i class="fas fa-key"></i> Generate Secret Key
+                                </button>
+                            </form>
+                        </div>
+
+                        <div class="alert alert-warning">
+                            <i class="fas fa-lightbulb"></i>
+                            <strong>Recommended:</strong> Use an authenticator app like:
+                            <ul class="mb-0 mt-2">
+                                <li>Google Authenticator</li>
+                                <li>Microsoft Authenticator</li>
+                                <li>Authy</li>
+                                <li>LastPass Authenticator</li>
+                            </ul>
+                        </div>
+
+                    {% elif step == "verify" %}
+                        <div class="alert alert-info">
+                            <strong>Step 2 of 2:</strong> Verify Your Setup
+                        </div>
+
+                        <p class="text-muted mb-4">
+                            Scan the QR code with your authenticator app, or enter the secret key manually if scanning doesn't work.
+                        </p>
+
+                        <!-- QR Code Section -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="text-center">
+                                    <h6 class="mb-3">Scan with your app:</h6>
+                                    {% if qr_code %}
+                                        <img src="data:image/png;base64,{{ qr_code }}" alt="QR Code" class="img-fluid border rounded" style="max-width: 250px;">
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div>
+                                    <h6 class="mb-3">Or enter manually:</h6>
+                                    <div class="bg-light p-3 rounded text-center" style="font-family: 'Courier New', monospace; word-break: break-all;">
+                                        <strong>{{ secret }}</strong>
+                                    </div>
+                                    <small class="text-muted d-block mt-2">
+                                        Keep this secret key safe. You'll need it if you lose access to your authenticator app.
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Verification Code Input -->
+                        <form method="POST" class="mb-4">
+                            <input type="hidden" name="action" value="verify_otp">
+                            <div class="mb-3">
+                                <label for="otp_code" class="form-label">
+                                    Enter the 6-digit code from your authenticator app:
+                                </label>
+                                <input 
+                                    type="text" 
+                                    class="form-control form-control-lg text-center" 
+                                    id="otp_code" 
+                                    name="otp_code" 
+                                    maxlength="6" 
+                                    placeholder="000000"
+                                    required
+                                    inputmode="numeric"
+                                    pattern="\d{6}"
+                                    autofocus
+                                >
+                            </div>
+                            <button type="submit" class="btn btn-danger w-100 btn-lg">
+                                <i class="fas fa-check"></i> Verify Code
+                            </button>
+                        </form>
+
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <strong>Important:</strong> Save your secret key in a safe place. You'll need it to recover your account if you lose your authenticator app.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="mt-3 text-center">
+                <a href="{{ url_for('user.profile') }}" class="text-muted">
+                    <i class="fas fa-times"></i> Cancel
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    #otp_code {
+        letter-spacing: 0.5rem;
+        font-size: 1.8rem;
+        font-weight: bold;
+        font-family: 'Courier New', monospace;
+    }
+    
+    #otp_code::placeholder {
+        letter-spacing: 0.5rem;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Register - Blood Management System{% endblock %}
+
+{% block content %}
+<div class="container-lg py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow-lg">
+                <div class="card-header">
+                    <h3 class="mb-0"><i class="fas fa-user-plus"></i> Create Account</h3>
+                </div>
+                <div class="card-body p-4">
+                    <!-- Standard Registration Form -->
+                    <form method="POST" action="/register">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="full_name" class="form-label">Full Name *</label>
+                                <input type="text" class="form-control" id="full_name" name="full_name" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="username" class="form-label">Username *</label>
+                                <input type="text" class="form-control" id="username" name="username" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email Address *</label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="phone" class="form-label">Phone Number</label>
+                            <input type="tel" class="form-control" id="phone" name="phone">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password *</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="role" class="form-label">Register As *</label>
+                            <select class="form-control" id="role" name="role" required>
+                                <option value="">Select Role</option>
+                                <option value="donor">Donor (Donate Blood)</option>
+                                <option value="recipient">Recipient (Request Blood)</option>
+                                <option value="both">Both</option>
+                            </select>
+                        </div>
+
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="terms" required>
+                            <label class="form-check-label" for="terms">
+                                I agree to the terms and conditions
+                            </label>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary-red w-100 mb-3">
+                            <i class="fas fa-check"></i> Create Account
+                        </button>
+                    </form>
+
+                    <!-- Auth0 Social Login (if enabled) -->
+                    {% if config.AUTH0_DOMAIN and config.AUTH0_CLIENT_ID %}
+                    <div class="text-center mb-3">
+                        <small class="text-muted">Or sign up with</small>
+                    </div>
+                    <div class="d-flex gap-2 mb-3">
+                        <a href="{{ url_for('auth.login_with_auth0', provider='google-oauth2') }}" class="btn btn-outline-secondary w-100" title="Sign up with Google">
+                            <i class="fab fa-google"></i> Google
+                        </a>
+                        <a href="{{ url_for('auth.login_with_auth0', provider='facebook') }}" class="btn btn-outline-secondary w-100" title="Sign up with Facebook">
+                            <i class="fab fa-facebook"></i> Facebook
+                        </a>
+                    </div>
+                    {% endif %}
+                    
+                    <hr>
+                    <p class="text-center mb-0">
+                        Already have an account? 
+                        <a href="/login" style="color: #DC143C; font-weight: 600;">Login here</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

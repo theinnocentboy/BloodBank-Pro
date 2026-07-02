@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Save Lives{% endblock %}
+
+{% block content %}
+    <!-- Hero Section -->
+    <div class="hero">
+        <div class="hero-content">
+            <h1><i class="fas fa-heart-pulse"></i> Save Lives Today</h1>
+            <p>Every blood donation can save up to 3 lives. Be a hero in someone's story.</p>
+            <div class="hero-buttons">
+                {% if session.get('user_id') %}
+                    <a href="{{ url_for('user.request_blood') }}" class="btn btn-outline-red btn-lg">
+                        <i class="fas fa-syringe"></i> Request Blood
+                    </a>
+                    <a href="{{ url_for('donor.register_donor') }}" class="btn btn-primary-red btn-lg">
+                        <i class="fas fa-hand-holding-medical"></i> Become a Donor
+                    </a>
+                {% else %}
+                    <a href="{{ url_for('auth.register') }}" class="btn btn-outline-red btn-lg">
+                        <i class="fas fa-user-plus"></i> Register Now
+                    </a>
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-primary-red btn-lg">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Features -->
+    <section class="py-5" style="background: white;">
+        <div class="container-lg">
+            <div class="row g-4 mb-5">
+                <div class="col-md-3 col-sm-6">
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-users"></i></div>
+                        <div class="stat-number">{{ stats.donors }}</div>
+                        <div class="stat-label">Active Donors</div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-droplet"></i></div>
+                        <div class="stat-number">{{ stats.units }}</div>
+                        <div class="stat-label">Units in Stock</div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-hand-holding-heart"></i></div>
+                        <div class="stat-number">{{ stats.fulfilled }}</div>
+                        <div class="stat-label">Requests Fulfilled</div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-file-medical"></i></div>
+                        <div class="stat-number">24/7</div>
+                        <div class="stat-label">Emergency Support</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="py-5 bg-light">
+        <div class="container-lg">
+            <h2 class="text-center mb-5" style="color: #DC143C; font-weight: 700;">How It Works</h2>
+            <div class="row">
+                <div class="col-md-4 mb-4">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <div style="font-size: 3rem; color: #DC143C; margin-bottom: 1rem;">
+                                <i class="fas fa-list-check"></i>
+                            </div>
+                            <h5>1. Register</h5>
+                            <p>Sign up as a donor or recipient with your basic information</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <div style="font-size: 3rem; color: #DC143C; margin-bottom: 1rem;">
+                                <i class="fas fa-search"></i>
+                            </div>
+                            <h5>2. Search & Connect</h5>
+                            <p>Find compatible donors or blood types in your area</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <div style="font-size: 3rem; color: #DC143C; margin-bottom: 1rem;">
+                                <i class="fas fa-handshake"></i>
+                            </div>
+                            <h5>3. Make an Impact</h5>
+                            <p>Help save lives through blood donation or requesting assistance</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Blood Groups Information -->
+    <section class="py-5" style="background: white;">
+        <div class="container-lg">
+            <h2 class="text-center mb-5" style="color: #DC143C; font-weight: 700;">Blood Groups</h2>
+            <div class="row">
+                {% for bg in ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'] %}
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <div class="blood-group-badge" style="font-size: 2rem; padding: 1rem 2rem;">{{ bg }}</div>
+                                <p class="mt-3 mb-0" style="font-size: 0.9rem; color: #6c757d;">
+                                    Universal <br>{% if bg.endswith('+') %}Donor{% else %}Recipient{% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-5" style="background: linear-gradient(135deg, #DC143C 0%, #8B0000 100%); color: white;">
+        <div class="container-lg text-center">
+            <h2 class="mb-3">Ready to Save Lives?</h2>
+            <p class="lead mb-4">Join thousands of donors making a difference in their communities every day</p>
+            {% if not session.get('user_id') %}
+                <a href="/register" class="btn btn-light btn-lg" style="color: #DC143C;">
+                    <i class="fas fa-arrow-right"></i> Get Started
+                </a>
+            {% endif %}
+        </div>
+    </section>
+{% endblock %}

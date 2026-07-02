@@ -1,0 +1,386 @@
+{% extends "base.html" %}
+
+{% block title %}AI Chatbot - BloodBank{% endblock %}
+
+{% block extra_css %}
+<style>
+    .chat-container {
+        height: 600px;
+        display: flex;
+        flex-direction: column;
+        background: #f8f9fa;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .message {
+        display: flex;
+        animation: slideIn 0.3s ease-in-out;
+    }
+
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .message.user {
+        justify-content: flex-end;
+    }
+
+    .message-content {
+        max-width: 70%;
+        padding: 12px 16px;
+        border-radius: 10px;
+        word-wrap: break-word;
+    }
+
+    .message.user .message-content {
+        background: #dc3545;
+        color: white;
+        border-radius: 18px 18px 4px 18px;
+    }
+
+    .message.bot .message-content {
+        background: white;
+        color: #333;
+        border-radius: 18px 18px 18px 4px;
+        border-left: 4px solid #dc3545;
+    }
+
+    .message.bot {
+        justify-content: flex-start;
+    }
+
+    .message-timestamp {
+        font-size: 0.75rem;
+        color: #999;
+        margin-top: 4px;
+        padding: 0 12px;
+    }
+
+    .chat-input-area {
+        border-top: 1px solid #ddd;
+        padding: 15px;
+        background: white;
+        display: flex;
+        gap: 10px;
+    }
+
+    .chat-input-area input {
+        flex: 1;
+        border: 1px solid #ddd;
+        border-radius: 20px;
+        padding: 10px 15px;
+        font-size: 0.95rem;
+    }
+
+    .chat-input-area input:focus {
+        outline: none;
+        border-color: #dc3545;
+        box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+    }
+
+    .send-btn {
+        background: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background 0.3s;
+    }
+
+    .send-btn:hover {
+        background: #c82333;
+    }
+
+    .send-btn:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+    }
+
+    .loading {
+        display: flex;
+        gap: 5px;
+        padding: 15px;
+    }
+
+    .loading span {
+        width: 8px;
+        height: 8px;
+        background: #dc3545;
+        border-radius: 50%;
+        animation: bounce 1.4s infinite;
+    }
+
+    .loading span:nth-child(2) {
+        animation-delay: 0.2s;
+    }
+
+    .loading span:nth-child(3) {
+        animation-delay: 0.4s;
+    }
+
+    @keyframes bounce {
+        0%, 80%, 100% {
+            transform: translateY(0);
+            opacity: 0.5;
+        }
+        40% {
+            transform: translateY(-10px);
+            opacity: 1;
+        }
+    }
+
+    .chat-info {
+        background: #e8f4f8;
+        border-left: 4px solid #17a2b8;
+        padding: 15px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+    }
+
+    .chat-info h5 {
+        margin: 0 0 10px 0;
+        color: #17a2b8;
+    }
+
+    .chat-info p {
+        margin: 5px 0;
+        font-size: 0.95rem;
+        color: #555;
+    }
+
+    .error-message {
+        background: #f8d7da;
+        border-left: 4px solid #dc3545;
+        color: #721c24;
+        padding: 12px;
+        border-radius: 5px;
+        margin-bottom: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-lg mt-4 mb-4">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <h2 class="mb-4">
+                <i class="fas fa-robot"></i> AI Assistant
+            </h2>
+
+            <div class="chat-info">
+                <h5><i class="fas fa-info-circle"></i> About AI Assistant</h5>
+                <p>Ask the AI assistant about blood donation, requests, emergencies, and more. Our AI is trained to help with common queries about the blood management system.</p>
+            </div>
+
+            {% if not session.get('user_id') %}
+            <div class="alert alert-warning">
+                <i class="fas fa-sign-in-alt"></i> Please <a href="{{ url_for('auth.login') }}">login</a> to chat with the AI assistant.
+            </div>
+            {% else %}
+            <div class="chat-container">
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message bot">
+                        <div>
+                            <div class="message-content">
+                                <strong>AI Assistant:</strong> Hello! I'm here to help you with any questions about blood donations, requests, or emergencies. How can I assist you today?
+                            </div>
+                            <div class="message-timestamp" id="timestamp0">Just now</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-input-area">
+                    <input
+                        type="text"
+                        id="messageInput"
+                        placeholder="Type your message..."
+                        autocomplete="off"
+                    >
+                    <button class="send-btn" id="sendBtn" title="Send message">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <button class="btn btn-outline-secondary btn-sm" id="clearChat">
+                    <i class="fas fa-trash"></i> Clear Chat
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const chatMessages = document.getElementById('chatMessages');
+    const messageInput = document.getElementById('messageInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const clearChatBtn = document.getElementById('clearChat');
+    let messageCount = 1;
+
+    function formatTime(date) {
+        return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function addMessage(content, isUser = false) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
+
+        const messageContent = document.createElement('div');
+        messageContent.className = 'message-content';
+
+        if (isUser) {
+            messageContent.textContent = content;
+        } else {
+            messageContent.innerHTML = `<strong>AI Assistant:</strong> ${content}`;
+        }
+
+        const timestamp = document.createElement('div');
+        timestamp.className = 'message-timestamp';
+        timestamp.textContent = formatTime(new Date());
+
+        messageDiv.appendChild(messageContent);
+        messageDiv.appendChild(timestamp);
+        chatMessages.appendChild(messageDiv);
+
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        return messageDiv;
+    }
+
+    function showTypingIndicator() {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message bot';
+        messageDiv.id = 'typingIndicator';
+
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'loading';
+        loadingDiv.innerHTML = '<span></span><span></span><span></span>';
+
+        messageDiv.appendChild(loadingDiv);
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function removeTypingIndicator() {
+        const indicator = document.getElementById('typingIndicator');
+        if (indicator) {
+            indicator.remove();
+        }
+    }
+
+    async function sendMessage() {
+        const message = messageInput.value.trim();
+
+        if (!message) return;
+
+        addMessage(message, true);
+        messageInput.value = '';
+        sendBtn.disabled = true;
+        showTypingIndicator();
+
+        try {
+            const response = await fetch('/api/ai/chatbot', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ message: message })
+            });
+
+            removeTypingIndicator();
+
+            const data = await response.json();
+
+            if (data.success) {
+                addMessage(data.message || 'I couldn\'t process that. Please try again.');
+            } else {
+                addMessage(data.message || 'Sorry, I encountered an error. Please try again later.');
+            }
+        } catch (error) {
+            removeTypingIndicator();
+            console.error('Error:', error);
+            addMessage('Network error. Please check your connection and try again.');
+        } finally {
+            sendBtn.disabled = false;
+            messageInput.focus();
+        }
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    messageInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+
+    clearChatBtn.addEventListener('click', () => {
+        if (confirm('Clear all messages? This cannot be undone.')) {
+            chatMessages.innerHTML = `
+                <div class="message bot">
+                    <div>
+                        <div class="message-content">
+                            <strong>AI Assistant:</strong> Chat cleared. How can I help you?
+                        </div>
+                        <div class="message-timestamp">Just now</div>
+                    </div>
+                </div>
+            `;
+        }
+    });
+
+    messageInput.focus();
+
+    // Load chat history if user is logged in
+    async function loadChatHistory() {
+        try {
+            const response = await fetch('/api/ai/chat-history?limit=5');
+            const data = await response.json();
+
+            if (data.success && data.history && data.history.length > 0) {
+                // Clear initial greeting
+                chatMessages.innerHTML = '';
+
+                // Add history in order
+                for (const msg of data.history) {
+                    addMessage(msg.user_message, true);
+                    addMessage(msg.assistant_response, false);
+                }
+            }
+        } catch (error) {
+            console.log('Could not load chat history');
+        }
+    }
+
+    // Only load history if user is logged in (this is in the else block of the template)
+    if (document.querySelector('.chat-messages')) {
+        // loadChatHistory(); // Commented out - can enable if needed
+    }
+</script>
+{% endblock %}

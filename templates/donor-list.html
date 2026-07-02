@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Donor List - Blood Management System{% endblock %}
+
+{% block content %}
+<div class="container-lg py-5">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="mb-4"><i class="fas fa-heart-pulse"></i> Our Donors</h2>
+        </div>
+    </div>
+
+    {% if donors %}
+        <div class="row">
+            {% for donor in donors %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="donor-card">
+                        <div class="text-end mb-2">
+                            <span class="badge bg-success">
+                                <i class="fas fa-check-circle"></i> Available
+                            </span>
+                        </div>
+                        <div class="donor-name">{{ donor.user.full_name }}</div>
+                        <div class="donor-blood-group mb-3">
+                            <span class="blood-group-badge">{{ donor.blood_group }}</span>
+                        </div>
+                        <div class="donor-info mb-2">
+                            <i class="fas fa-map-marker-alt" style="color: #DC143C;"></i>
+                            <strong>{{ donor.city }}</strong>
+                        </div>
+                        <div class="donor-info mb-2">
+                            <i class="fas fa-phone" style="color: #DC143C;"></i>
+                            {{ donor.user.phone or 'N/A' }}
+                        </div>
+                        <div class="donor-info mb-2">
+                            <i class="fas fa-mail-bulk" style="color: #DC143C;"></i>
+                            {{ donor.user.email or 'N/A' }}
+                        </div>
+                        <div class="donor-info mb-3">
+                            <i class="fas fa-history" style="color: #DC143C;"></i>
+                            <strong>{{ donor.units_donated }}</strong> units donated
+                        </div>
+                        
+                        <div style="border-top: 1px solid #E9ECEF; padding-top: 1rem; margin-top: 1rem;">
+                            <small class="text-muted">
+                                <i class="fas fa-calendar"></i>
+                                Joined: {{ donor.created_at.strftime('%B %Y') }}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="row">
+            <div class="col-12">
+                <div class="empty-state">
+                    <i class="fas fa-inbox"></i>
+                    <h3>No Donors Available</h3>
+                    <p>No donors are currently available. Please check back later or <a href="/donor/register" style="color: #DC143C;">register as a donor</a>.</p>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
