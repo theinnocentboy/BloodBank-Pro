@@ -1,6 +1,7 @@
+import os
 from datetime import datetime
 
-from flask import Blueprint, flash, jsonify, redirect, render_template, request, session, url_for
+from flask import Blueprint, flash, jsonify, redirect, render_template, request, session, url_for, current_app, send_from_directory
 
 from bloodbank.constants import BLOOD_GROUPS
 from bloodbank.decorators import admin_required
@@ -55,29 +56,30 @@ def requests():
     return render_template("admin-requests.html", requests=requests_list)
 
 
-@admin_bp.route("/request/<int:req_id>/approve", methods=["POST"])
-@admin_required
+@admin_bp.route('/requests/approve/<int:req_id>', methods=['POST'])
+@admin_required  
 def approve_request(req_id):
-    blood_req = db.get_or_404(BloodRequest, req_id)
-    if blood_req.status != "pending":
-        flash("This request has already been processed.", "warning")
-        return redirect(url_for("admin.requests"))
-
+    blood_req = BloodRequest.query.get_or_404(req_id)
+    
+    # Check if the document was verified first
+    if not blood_req.is_verified:
+        flash('You must verify the hospital requisition document before approving this request.', 'warning')
+        return redirect(url_for('admin.requests'))
+        
+    # Query BloodInventory instead of Inventory
     inventory = BloodInventory.query.filter_by(blood_group=blood_req.blood_group).first()
+    
     if not inventory or inventory.units < blood_req.quantity:
-        flash(
-            f"Insufficient {blood_req.blood_group} inventory "
-            f"(need {blood_req.quantity} units).",
-            "danger",
-        )
-        return redirect(url_for("admin.requests"))
-
+        flash(f'Insufficient stock for {blood_req.blood_group}.', 'danger')
+        return redirect(url_for('admin.requests'))
+        
+    # Deduct stock and approve
     inventory.units -= blood_req.quantity
-    inventory.last_updated = datetime.utcnow()
-    blood_req.status = "approved"
+    blood_req.status = 'approved'
     db.session.commit()
-    flash("Request approved and inventory updated.", "success")
-    return redirect(url_for("admin.requests"))
+    
+    flash('Request approved and inventory deducted.', 'success')
+    return redirect(url_for('admin.requests'))
 
 
 @admin_bp.route("/request/<int:req_id>/reject", methods=["POST"])
@@ -129,3 +131,31 @@ def inventory_stats():
             "units": [item.units for item in inventory],
         }
     )
+
+
+# --- NEW VERIFICATION PIPELINE ROUTES ---
+
+@admin_bp.route('/document/<filename>')
+@admin_required
+def serve_document(filename):
+    upload_folder = current_app.config.get(
+        'UPLOAD_FOLDER', 
+        os.path.join(current_app.instance_path, 'uploads', 'requisitions')
+    )
+    return send_from_directory(upload_folder, filename)
+
+
+@admin_bp.route('/requests/verify/<int:req_id>', methods=['POST'])
+@admin_required
+def verify_request(req_id):
+    blood_req = BloodRequest.query.get_or_404(req_id)
+    
+    if not blood_req.requisition_doc:
+        flash('Cannot verify: No document was uploaded with this request.', 'danger')
+        return redirect(url_for('admin.requests'))
+
+    blood_req.is_verified = True
+    db.session.commit()
+    
+    flash(f'Request #{req_id} has been verified successfully. You can now approve stock release.', 'success')
+    return redirect(url_for('admin.requests'))

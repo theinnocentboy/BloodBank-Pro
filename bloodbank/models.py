@@ -82,6 +82,8 @@ class BloodRequest(db.Model):
     is_emergency = db.Column(db.Boolean, default=False)  # AI-flagged emergency
 
     user = db.relationship("User", back_populates="blood_requests")
+    requisition_doc = db.Column(db.String(255), nullable=True) # Path to the uploaded PDF/Image
+    is_verified = db.Column(db.Boolean, default=False)         # Admin verification flag
 
 
 class BloodInventory(db.Model):

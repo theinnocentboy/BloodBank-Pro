@@ -1,4 +1,7 @@
-from flask import Blueprint, flash, redirect, render_template, request, session, url_for
+import os
+import uuid
+from werkzeug.utils import secure_filename
+from flask import Blueprint, flash, redirect, render_template, request, session, url_for, current_app
 
 from bloodbank.constants import BLOOD_GROUPS, URGENCY_LEVELS
 from bloodbank.decorators import login_required
@@ -15,6 +18,10 @@ ROLE_LABELS = {
     "user": "User",
 }
 
+def allowed_file(filename):
+    """Helper function to validate allowed file extensions."""
+    allowed_extensions = current_app.config.get('ALLOWED_EXTENSIONS', {'pdf', 'png', 'jpg', 'jpeg'})
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_extensions
 
 def _get_current_user():
     return db.session.get(User, session.get("user_id"))
@@ -167,6 +174,7 @@ def request_blood():
         urgency = request.form.get("urgency", "normal").strip()
         reason = request.form.get("reason", "").strip()
 
+        # 1. Basic Form Validation
         if blood_group not in BLOOD_GROUPS:
             flash("Please select a valid blood group.", "danger")
             return redirect(url_for("user.request_blood"))
@@ -186,16 +194,52 @@ def request_blood():
             flash("Quantity must be a positive number.", "danger")
             return redirect(url_for("user.request_blood"))
 
+        # 2. Requisition Document Handling
+        if 'requisition_doc' not in request.files:
+            flash("Doctor's requisition document is required.", "danger")
+            return redirect(request.url)
+            
+        file = request.files['requisition_doc']
+        
+        if file.filename == '':
+            flash("No document selected for uploading.", "danger")
+            return redirect(request.url)
+
+        unique_filename = None
+        if file and allowed_file(file.filename):
+            original_filename = secure_filename(file.filename)
+            unique_filename = f"{uuid.uuid4().hex}_{original_filename}"
+            
+            # Use configured upload folder, or default to instance/uploads/requisitions
+            upload_folder = current_app.config.get(
+                'UPLOAD_FOLDER', 
+                os.path.join(current_app.instance_path, 'uploads', 'requisitions')
+            )
+            
+            # Ensure directory exists before saving
+            os.makedirs(upload_folder, exist_ok=True)
+            
+            file_path = os.path.join(upload_folder, unique_filename)
+            file.save(file_path)
+        else:
+            flash("Invalid file type. Please upload a PDF, JPG, or PNG.", "danger")
+            return redirect(request.url)
+
+        # 3. Create Database Record
         blood_req = BloodRequest(
             user_id=session["user_id"],
             blood_group=blood_group,
             quantity=quantity,
             urgency=urgency,
             reason=reason,
+            requisition_doc=unique_filename,
+            is_verified=False
         )
+        
         db.session.add(blood_req)
         db.session.commit()
-        flash("Blood request submitted. An admin will review it shortly.", "success")
+        
+        flash("Blood request submitted successfully. Awaiting admin verification.", "success")
         return redirect(url_for("user.dashboard"))
 
     return render_template("request-blood.html", blood_groups=BLOOD_GROUPS)

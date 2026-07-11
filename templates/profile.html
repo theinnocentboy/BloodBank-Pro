@@ -1,331 +1,157 @@
 {% extends "base.html" %}
 
-{% block title %}Profile Settings{% endblock %}
+{% block title %}Profile Settings - BloodBank{% endblock %}
 
 {% block content %}
-<div class="container-lg py-5 profile-page">
-    <div class="dashboard-header mb-4">
-        <h1><i class="fas fa-user-gear"></i> Profile &amp; Account</h1>
-        <p class="text-muted mb-0">Manage your personal details, password, and donor information.</p>
+<div class="container-lg py-4 px-3">
+    <div class="mb-4">
+        <h2 class="fw-bold"><i class="fas fa-user-circle text-danger me-2"></i>Profile Settings</h2>
     </div>
 
     <div class="row g-4">
-        <div class="col-lg-4">
-            <div class="card shadow-sm profile-summary-card">
+        <!-- Mobile-first Avatar Card -->
+        <div class="col-12 col-lg-4">
+            <div class="card border-0 shadow-sm border-top border-danger border-4">
                 <div class="card-body text-center p-4">
-                    <div class="profile-avatar mx-auto mb-3">
+                    <div class="bg-light rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3 text-danger" style="width: 80px; height: 80px; font-size: 2rem;">
                         <i class="fas fa-user"></i>
                     </div>
-                    <h4 class="mb-1">{{ user.full_name }}</h4>
-                    <p class="text-muted mb-2">@{{ user.username }}</p>
-                    <span class="badge bg-danger mb-3">{{ role_label }}</span>
-                    <ul class="list-unstyled text-start profile-meta">
-                        <li><i class="fas fa-envelope text-muted"></i> {{ user.email }}</li>
-                        <li>
-                            <i class="fas fa-phone text-muted"></i>
-                            {{ user.phone or 'Not set' }}
-                        </li>
-                        <li>
-                            <i class="fas fa-calendar text-muted"></i>
-                            Member since {{ user.created_at.strftime('%b %d, %Y') if user.created_at else 'N/A' }}
-                        </li>
+                    <h4 class="fw-bold mb-1">{{ user.full_name }}</h4>
+                    <p class="text-muted small mb-3">@{{ user.username }}</p>
+                    <span class="badge bg-danger-subtle text-danger px-3 py-2 rounded-pill mb-4">{{ role_label }}</span>
+                    
+                    <div class="text-start">
+                        <div class="d-flex align-items-center gap-3 mb-2">
+                            <i class="fas fa-envelope text-muted" style="width: 20px;"></i>
+                            <span class="small text-dark">{{ user.email }}</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-3 mb-2">
+                            <i class="fas fa-phone text-muted" style="width: 20px;"></i>
+                            <span class="small text-dark">{{ user.phone or 'Not provided' }}</span>
+                        </div>
                         {% if donor %}
-                        <li>
-                            <i class="fas fa-droplet text-muted"></i>
-                            Donor · {{ donor.blood_group }} · {{ donor.city }}
-                        </li>
+                        <div class="d-flex align-items-center gap-3 mt-3 pt-3 border-top">
+                            <i class="fas fa-droplet text-danger" style="width: 20px;"></i>
+                            <span class="small fw-bold">Active Donor ({{ donor.blood_group }})</span>
+                        </div>
                         {% endif %}
-                    </ul>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="col-lg-8">
-            <div class="card shadow-sm">
-                <div class="card-header bg-white border-bottom-0 pt-3 px-3">
-                    <ul class="nav nav-tabs card-header-tabs profile-tabs" id="profileTabs" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link {% if request.args.get('tab', 'details') == 'details' %}active{% endif %}"
-                                    id="details-tab" data-bs-toggle="tab" data-bs-target="#details-panel"
-                                    type="button" role="tab">Personal</button>
+        <!-- Scrollable Tabs Area -->
+        <div class="col-12 col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <!-- Mobile Horizontal Scroll for Tabs -->
+                <div class="card-header bg-white border-bottom p-0 overflow-x-auto">
+                    <ul class="nav nav-tabs border-0 flex-nowrap px-3 pt-3" style="white-space: nowrap;" id="profileTabs">
+                        <li class="nav-item">
+                            <button class="nav-link bg-transparent border-0 {% if request.args.get('tab', 'details') == 'details' %}active border-bottom border-danger border-3 text-danger fw-bold{% else %}text-muted{% endif %}" data-bs-toggle="tab" data-bs-target="#details">Personal</button>
                         </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link {% if request.args.get('tab') == 'security' %}active{% endif %}"
-                                    id="security-tab" data-bs-toggle="tab" data-bs-target="#security-panel"
-                                    type="button" role="tab">Security</button>
+                        <li class="nav-item">
+                            <button class="nav-link bg-transparent border-0 {% if request.args.get('tab') == 'security' %}active border-bottom border-danger border-3 text-danger fw-bold{% else %}text-muted{% endif %}" data-bs-toggle="tab" data-bs-target="#security">Security</button>
                         </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link {% if request.args.get('tab') == 'two-factor' %}active{% endif %}"
-                                    id="two-factor-tab" data-bs-toggle="tab" data-bs-target="#two-factor-panel"
-                                    type="button" role="tab">
-                                <i class="fas fa-lock"></i> Two-Factor Auth
-                            </button>
+                        <li class="nav-item">
+                            <button class="nav-link bg-transparent border-0 {% if request.args.get('tab') == 'two-factor' %}active border-bottom border-danger border-3 text-danger fw-bold{% else %}text-muted{% endif %}" data-bs-toggle="tab" data-bs-target="#two-factor">2FA</button>
                         </li>
                         {% if donor %}
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link {% if request.args.get('tab') == 'donor' %}active{% endif %}"
-                                    id="donor-tab" data-bs-toggle="tab" data-bs-target="#donor-panel"
-                                    type="button" role="tab">Donor</button>
+                        <li class="nav-item">
+                            <button class="nav-link bg-transparent border-0 {% if request.args.get('tab') == 'donor' %}active border-bottom border-danger border-3 text-danger fw-bold{% else %}text-muted{% endif %}" data-bs-toggle="tab" data-bs-target="#donor">Donor Info</button>
                         </li>
                         {% endif %}
                     </ul>
                 </div>
 
                 <div class="card-body p-4">
-                    <div class="tab-content" id="profileTabContent">
-                        <div class="tab-pane fade {% if request.args.get('tab', 'details') == 'details' %}show active{% endif %}"
-                             id="details-panel" role="tabpanel">
-                            <h5 class="mb-3">Personal information</h5>
-                            <p class="text-muted small">Update your name, email, and contact number.</p>
-                            <form method="POST" action="{{ url_for('user.profile') }}">
+                    <div class="tab-content">
+                        <!-- Details Tab -->
+                        <div class="tab-pane fade {% if request.args.get('tab', 'details') == 'details' %}show active{% endif %}" id="details">
+                            <form method="POST">
                                 <input type="hidden" name="action" value="details">
-                                <div class="row g-3">
-                                    <div class="col-md-6">
-                                        <label for="full_name" class="form-label">Full name *</label>
-                                        <input type="text" class="form-control" id="full_name" name="full_name"
-                                               value="{{ user.full_name }}" required minlength="2">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="email" class="form-label">Email *</label>
-                                        <input type="email" class="form-control" id="email" name="email"
-                                               value="{{ user.email }}" required>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="phone" class="form-label">Phone</label>
-                                        <input type="tel" class="form-control" id="phone" name="phone"
-                                               value="{{ user.phone or '' }}" placeholder="+91 98765 43210">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">Username</label>
-                                        <input type="text" class="form-control" value="{{ user.username }}" disabled>
-                                        <small class="text-muted">Username cannot be changed.</small>
-                                    </div>
+                                <div class="mb-3">
+                                    <label class="form-label text-muted small fw-bold">Full Name</label>
+                                    <input type="text" class="form-control" name="full_name" value="{{ user.full_name }}" required>
                                 </div>
-                                <button type="submit" class="btn btn-primary-red mt-4">
-                                    <i class="fas fa-save"></i> Save changes
-                                </button>
+                                <div class="mb-3">
+                                    <label class="form-label text-muted small fw-bold">Email</label>
+                                    <input type="email" class="form-control" name="email" value="{{ user.email }}" required>
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label text-muted small fw-bold">Phone Number</label>
+                                    <input type="tel" class="form-control" name="phone" value="{{ user.phone or '' }}">
+                                </div>
+                                <button type="submit" class="btn btn-primary-red w-100">Save Changes</button>
                             </form>
                         </div>
-
-                        <div class="tab-pane fade {% if request.args.get('tab') == 'security' %}show active{% endif %}"
-                             id="security-panel" role="tabpanel">
-                            <h5 class="mb-3">Change password</h5>
-                            <p class="text-muted small">Use at least 6 characters. You will stay logged in after changing.</p>
-                            <form method="POST" action="{{ url_for('user.profile') }}" class="col-lg-8">
+                        
+                        <!-- Security Tab -->
+                        <div class="tab-pane fade {% if request.args.get('tab') == 'security' %}show active{% endif %}" id="security">
+                            <form method="POST">
                                 <input type="hidden" name="action" value="password">
                                 <div class="mb-3">
-                                    <label for="current_password" class="form-label">Current password *</label>
-                                    <input type="password" class="form-control" id="current_password"
-                                           name="current_password" required autocomplete="current-password">
+                                    <label class="form-label text-muted small fw-bold">Current Password</label>
+                                    <input type="password" class="form-control" name="current_password" required>
                                 </div>
                                 <div class="mb-3">
-                                    <label for="new_password" class="form-label">New password *</label>
-                                    <input type="password" class="form-control" id="new_password"
-                                           name="new_password" required minlength="6" autocomplete="new-password">
+                                    <label class="form-label text-muted small fw-bold">New Password</label>
+                                    <input type="password" class="form-control" name="new_password" required minlength="6">
                                 </div>
-                                <div class="mb-3">
-                                    <label for="confirm_password" class="form-label">Confirm new password *</label>
-                                    <input type="password" class="form-control" id="confirm_password"
-                                           name="confirm_password" required minlength="6" autocomplete="new-password">
+                                <div class="mb-4">
+                                    <label class="form-label text-muted small fw-bold">Confirm New Password</label>
+                                    <input type="password" class="form-control" name="confirm_password" required minlength="6">
                                 </div>
-                                <button type="submit" class="btn btn-primary-red">
-                                    <i class="fas fa-lock"></i> Update password
-                                </button>
+                                <button type="submit" class="btn btn-primary-red w-100">Update Password</button>
                             </form>
                         </div>
 
-                        <div class="tab-pane fade {% if request.args.get('tab') == 'two-factor' %}show active{% endif %}"
-                             id="two-factor-panel" role="tabpanel">
-                            <h5 class="mb-3"><i class="fas fa-shield-alt"></i> Two-Factor Authentication</h5>
-                            <p class="text-muted small">Add an extra layer of security by enabling two-factor authentication (2FA) on your account.</p>
-                            
-                            {% if user.otp_enabled %}
-                                <div class="alert alert-success">
-                                    <i class="fas fa-check-circle"></i>
-                                    <strong>Two-Factor Authentication is Enabled</strong>
-                                    <p class="mb-0 mt-2">Your account is protected with 2FA. You'll be asked to verify with your authenticator app during login.</p>
-                                </div>
-
-                                <div class="row g-3 mb-4">
-                                    <div class="col-md-6">
-                                        <div class="card border">
-                                            <div class="card-body">
-                                                <h6 class="card-title">
-                                                    <i class="fas fa-mobile-alt"></i> Authenticator App
-                                                </h6>
-                                                <p class="text-muted small mb-0">Active and ready to use</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="card border">
-                                            <div class="card-body">
-                                                <h6 class="card-title">
-                                                    <i class="fas fa-key"></i> Backup Codes
-                                                </h6>
-                                                <p class="text-muted small mb-3">Available for emergency access</p>
-                                                <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#regenerateBackupModal">
-                                                    Regenerate Codes
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="col-lg-8">
-                                    <h6 class="mb-3">Disable Two-Factor Authentication</h6>
-                                    <p class="text-muted small mb-3">
-                                        Disabling 2FA will remove the extra security layer from your account.
-                                        You'll only need your username and password to log in.
-                                    </p>
-                                    <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#disableTwoFactorModal">
-                                        <i class="fas fa-trash"></i> Disable 2FA
-                                    </button>
-                                </div>
-                            {% else %}
-                                <div class="alert alert-info">
-                                    <i class="fas fa-info-circle"></i>
-                                    <strong>Enhance your account security</strong>
-                                    <p class="mb-0 mt-2">Two-factor authentication adds an extra layer of protection to your account by requiring a second verification step during login.</p>
-                                </div>
-
-                                <div class="col-lg-8">
-                                    <h6 class="mb-3">How it works:</h6>
-                                    <ol class="text-muted small">
-                                        <li>Download an authenticator app (Google Authenticator, Authy, Microsoft Authenticator, etc.)</li>
-                                        <li>Scan the QR code provided during setup</li>
-                                        <li>During login, you'll be asked to enter the code from your authenticator app</li>
-                                        <li>Backup codes will be provided for emergency access</li>
-                                    </ol>
-
-                                    <a href="{{ url_for('otp.setup_otp') }}" class="btn btn-danger mt-4">
-                                        <i class="fas fa-key"></i> Enable Two-Factor Authentication
-                                    </a>
-                                </div>
-                            {% endif %}
+                        <!-- 2FA Tab (Simplified for mobile) -->
+                        <div class="tab-pane fade {% if request.args.get('tab') == 'two-factor' %}show active{% endif %}" id="two-factor">
+                            <div class="text-center py-4">
+                                {% if user.otp_enabled %}
+                                    <i class="fas fa-shield-check fa-3x text-success mb-3"></i>
+                                    <h5 class="fw-bold">2FA is Active</h5>
+                                    <p class="text-muted small mb-4">Your account is secured with two-factor authentication.</p>
+                                    <button class="btn btn-outline-danger w-100" data-bs-toggle="modal" data-bs-target="#disableTwoFactorModal">Disable 2FA</button>
+                                {% else %}
+                                    <i class="fas fa-shield-alt fa-3x text-muted mb-3 opacity-50"></i>
+                                    <h5 class="fw-bold">Enhance Security</h5>
+                                    <p class="text-muted small mb-4">Require a verification code alongside your password.</p>
+                                    <a href="{{ url_for('otp.setup_otp') }}" class="btn btn-primary-red w-100">Enable 2FA</a>
+                                {% endif %}
+                            </div>
                         </div>
 
+                        <!-- Donor Tab -->
                         {% if donor %}
-                        <div class="tab-pane fade {% if request.args.get('tab') == 'donor' %}show active{% endif %}"
-                             id="donor-panel" role="tabpanel">
-                            <h5 class="mb-3">Donor profile</h5>
-                            <p class="text-muted small">Update how others find you when searching for donors.</p>
-                            <form method="POST" action="{{ url_for('user.profile') }}">
+                        <div class="tab-pane fade {% if request.args.get('tab') == 'donor' %}show active{% endif %}" id="donor">
+                            <form method="POST">
                                 <input type="hidden" name="action" value="donor">
-                                <div class="row g-3">
-                                    <div class="col-md-6">
-                                        <label for="blood_group" class="form-label">Blood group *</label>
-                                        <select class="form-select" id="blood_group" name="blood_group" required>
-                                            {% for bg in blood_groups %}
-                                            <option value="{{ bg }}" {% if donor.blood_group == bg %}selected{% endif %}>{{ bg }}</option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="city" class="form-label">City *</label>
-                                        <input type="text" class="form-control" id="city" name="city"
-                                               value="{{ donor.city }}" required minlength="2">
-                                    </div>
-                                    <div class="col-12">
-                                        <div class="form-check form-switch">
-                                            <input class="form-check-input" type="checkbox" id="availability"
-                                                   name="availability" value="1" {% if donor.availability %}checked{% endif %}>
-                                            <label class="form-check-label" for="availability">
-                                                Available to donate
-                                            </label>
-                                        </div>
-                                        <small class="text-muted">Turn off when you are not available for donation requests.</small>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">Units donated</label>
-                                        <input type="text" class="form-control" value="{{ donor.units_donated }}" disabled>
-                                    </div>
+                                <div class="mb-3">
+                                    <label class="form-label text-muted small fw-bold">Blood Group</label>
+                                    <select class="form-select" name="blood_group">
+                                        {% for bg in blood_groups %}
+                                        <option value="{{ bg }}" {% if donor.blood_group == bg %}selected{% endif %}>{{ bg }}</option>
+                                        {% endfor %}
+                                    </select>
                                 </div>
-                                <button type="submit" class="btn btn-primary-red mt-4">
-                                    <i class="fas fa-droplet"></i> Save donor settings
-                                </button>
+                                <div class="mb-4">
+                                    <label class="form-label text-muted small fw-bold">City</label>
+                                    <input type="text" class="form-control" name="city" value="{{ donor.city }}" required>
+                                </div>
+                                <div class="form-check form-switch mb-4">
+                                    <input class="form-check-input" type="checkbox" name="availability" value="1" id="availabilitySwitch" {% if donor.availability %}checked{% endif %}>
+                                    <label class="form-check-label ms-2" for="availabilitySwitch">I am available to donate</label>
+                                </div>
+                                <button type="submit" class="btn btn-primary-red w-100">Save Donor Info</button>
                             </form>
                         </div>
                         {% endif %}
-                    </div>
-                </div>
-            </div>
 
-            {% if not donor and user.role != 'admin' %}
-            <div class="card shadow-sm mt-4 border-danger">
-                <div class="card-body d-flex flex-wrap align-items-center justify-content-between gap-2">
-                    <div>
-                        <h6 class="mb-1"><i class="fas fa-hand-holding-medical text-danger"></i> Become a donor</h6>
-                        <p class="text-muted small mb-0">Register to appear in donor searches and help save lives.</p>
                     </div>
-                    <a href="{{ url_for('donor.register_donor') }}" class="btn btn-primary-red">Register as donor</a>
                 </div>
             </div>
-            {% endif %}
         </div>
     </div>
 </div>
-
-<!-- Modal: Disable Two-Factor Authentication -->
-<div class="modal fade" id="disableTwoFactorModal" tabindex="-1" aria-labelledby="disableTwoFactorLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title" id="disableTwoFactorLabel">
-                    <i class="fas fa-exclamation-triangle"></i> Disable Two-Factor Authentication
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form method="POST" action="{{ url_for('otp.disable_otp') }}">
-                <div class="modal-body">
-                    <div class="alert alert-warning">
-                        <strong>Warning!</strong> Disabling 2FA will make your account less secure.
-                    </div>
-                    <p>To confirm disabling two-factor authentication, please enter your password:</p>
-                    <div class="mb-3">
-                        <label for="disable_password" class="form-label">Password</label>
-                        <input type="password" class="form-control" id="disable_password" name="password" required>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-danger">
-                        <i class="fas fa-trash"></i> Disable 2FA
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Modal: Regenerate Backup Codes -->
-<div class="modal fade" id="regenerateBackupModal" tabindex="-1" aria-labelledby="regenerateBackupLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-info text-white">
-                <h5 class="modal-title" id="regenerateBackupLabel">
-                    <i class="fas fa-key"></i> Regenerate Backup Codes
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form method="POST" action="{{ url_for('otp.regenerate_backup_codes') }}">
-                <div class="modal-body">
-                    <p>Generating new backup codes will replace your existing codes. Your current codes will no longer work.</p>
-                    <p>To proceed, please enter your password:</p>
-                    <div class="mb-3">
-                        <label for="regen_password" class="form-label">Password</label>
-                        <input type="password" class="form-control" id="regen_password" name="password" required>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-sync"></i> Regenerate Codes
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
 {% endblock %}

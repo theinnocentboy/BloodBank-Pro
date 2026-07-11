@@ -1,59 +1,61 @@
 {% extends "base.html" %}
 
-{% block title %}Login - Blood Management System{% endblock %}
+{% block title %}Login - BloodBank{% endblock %}
 
 {% block content %}
-<div class="container-lg py-5">
-    <div class="row justify-content-center">
-        <div class="col-md-5 col-lg-4">
-            <div class="card shadow-lg">
-                <div class="card-header">
-                    <h3 class="mb-0"><i class="fas fa-sign-in-alt"></i> Login</h3>
+<div class="container-lg py-5 d-flex align-items-center justify-content-center" style="min-height: calc(100vh - 150px);">
+    <div class="card border-0 shadow-lg overflow-hidden w-100" style="max-width: 900px; border-radius: var(--radius-lg);">
+        <div class="row g-0">
+            <!-- Left Branding Side (Hidden on Mobile, Visible on Tablet/Desktop) -->
+            <div class="col-md-5 d-none d-md-flex flex-column justify-content-center align-items-center p-5 text-center" style="background: radial-gradient(circle at top left, var(--brand-light), white);">
+                <div class="bg-white p-4 rounded-circle shadow-sm mb-4 text-danger" style="width: 80px; height: 80px; font-size: 2rem; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-heartbeat"></i>
                 </div>
-                <div class="card-body p-4">
-                    
-                    <!-- Standard Login Form -->
-                    <form method="POST" action="{{ url_for('auth.login') }}">
-                        <div class="mb-3">
-                            <label for="username" class="form-label">Username</label>
-                            <input type="text" class="form-control" id="username" name="username" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="password" class="form-label">Password</label>
-                            <input type="password" class="form-control" id="password" name="password" required>
-                        </div>
-                        <button type="submit" class="btn btn-primary-red w-100 mb-3">
-                            <i class="fas fa-check"></i> Login
-                        </button>
-                    </form>
-
-                    <!-- Auth0 Social Login (if enabled) -->
-                    {% if config.AUTH0_DOMAIN and config.AUTH0_CLIENT_ID %}
-                    <div class="d-flex gap-2 mb-3">
-                        <a href="{{ url_for('auth.login_with_auth0', provider='google-oauth2') }}" class="btn btn-outline-secondary w-100" title="Login with Google">
-                            <i class="fab fa-google"></i>
-                        </a>
-                        <a href="{{ url_for('auth.login_with_auth0', provider='facebook') }}" class="btn btn-outline-secondary w-100" title="Login with Facebook">
-                            <i class="fab fa-facebook"></i>
-                        </a>
-                    </div>
-                    <div class="text-center mb-3">
-                        <small class="text-muted">Or login with</small>
-                    </div>
-                    <a href="{{ url_for('auth.login_with_auth0') }}" class="btn btn-info w-100 mb-3">
-                        <i class="fas fa-lock"></i> Auth0
-                    </a>
-                    {% endif %}
-
-
-                    <p class="text-center mb-0">
-                        Don't have an account? 
-                        <a href="{{ url_for('auth.register') }}" style="color: #DC143C; font-weight: 600;">Register here</a>
-                    </p>
-
-                </div>
+                <h3 class="fw-bold mb-2">Welcome Back</h3>
+                <p class="text-muted small">Access your dashboard to manage blood requests and donor settings.</p>
             </div>
             
+            <!-- Right Form Side (Full width on Mobile) -->
+            <div class="col-12 col-md-7 p-4 p-lg-5">
+                <div class="mb-4 d-md-none text-center">
+                    <i class="fas fa-heartbeat text-danger fs-1 mb-2"></i>
+                    <h3 class="fw-bold">Login</h3>
+                </div>
+                
+                <form method="POST" action="{{ url_for('auth.login') }}">
+                    <div class="mb-3">
+                        <label for="username" class="form-label text-muted small fw-bold">Username</label>
+                        <input type="text" class="form-control form-control-lg fs-6" id="username" name="username" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="password" class="form-label text-muted small fw-bold">Password</label>
+                        <input type="password" class="form-control form-control-lg fs-6" id="password" name="password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary-red w-100 btn-lg mb-4">
+                        Login to Dashboard
+                    </button>
+                </form>
+
+                {% if config.AUTH0_DOMAIN and config.AUTH0_CLIENT_ID %}
+                <div class="position-relative mb-4 text-center">
+                    <hr class="text-muted">
+                    <span class="position-absolute top-50 start-50 translate-middle bg-white px-3 text-muted small">Or continue with</span>
+                </div>
+                <div class="d-flex flex-column flex-sm-row gap-2 mb-4">
+                    <a href="{{ url_for('auth.login_with_auth0', provider='google-oauth2') }}" class="btn btn-light border w-100 d-flex align-items-center justify-content-center gap-2">
+                        <i class="fab fa-google text-danger"></i> Google
+                    </a>
+                    <a href="{{ url_for('auth.login_with_auth0', provider='facebook') }}" class="btn btn-light border w-100 d-flex align-items-center justify-content-center gap-2">
+                        <i class="fab fa-facebook text-primary"></i> Facebook
+                    </a>
+                </div>
+                {% endif %}
+
+                <p class="text-center mb-0 text-muted small">
+                    Don't have an account? 
+                    <a href="{{ url_for('auth.register') }}" class="text-danger fw-bold text-decoration-none">Register here</a>
+                </p>
+            </div>
         </div>
     </div>
 </div>

@@ -36,6 +36,7 @@ def create_app(config_class=Config):
 
     register_blueprints(app)
 
+
     # Make config available to all templates
     @app.context_processor
     def inject_config():

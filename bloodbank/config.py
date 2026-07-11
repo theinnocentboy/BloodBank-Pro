@@ -40,3 +40,8 @@ class Config:
     SMTP_USERNAME = os.environ.get("SMTP_USERNAME", "")
     SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
     EMAIL_FROM = os.environ.get("EMAIL_FROM", "")
+
+    # Document Upload Configuration
+    UPLOAD_FOLDER = os.path.join(BASE_DIR, 'instance', 'uploads', 'requisitions')
+    MAX_CONTENT_LENGTH = 5 * 1024 * 1024  # 5MB max file size
+    ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg'}

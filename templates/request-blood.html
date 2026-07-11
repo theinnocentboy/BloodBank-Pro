@@ -1,83 +1,77 @@
 {% extends "base.html" %}
 
-{% block title %}Request Blood - Blood Management System{% endblock %}
+{% block title %}Request Blood - BloodBank{% endblock %}
 
 {% block content %}
-<div class="container-lg py-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6 col-lg-5">
-            <div class="card shadow-lg">
-                <div class="card-header">
-                    <h3 class="mb-0"><i class="fas fa-syringe"></i> Request Blood</h3>
-                </div>
-                <div class="card-body p-4">
-                    <div class="alert alert-danger mb-4">
-                        <i class="fas fa-exclamation-circle"></i>
-                        <strong>Emergency?</strong> Select "Critical" urgency for faster processing.
-                    </div>
-
-                    <form method="POST" action="/request-blood">
-                        <div class="mb-3">
-                            <label for="blood_group" class="form-label">Blood Group Needed *</label>
-                            <select class="form-control" id="blood_group" name="blood_group" required>
-                                <option value="">Select Blood Group</option>
-                                <option value="O+">O+ (Universal Recipient)</option>
-                                <option value="O-">O-</option>
-                                <option value="A+">A+</option>
-                                <option value="A-">A-</option>
-                                <option value="B+">B+</option>
-                                <option value="B-">B-</option>
-                                <option value="AB+">AB+ (Universal Recipient)</option>
-                                <option value="AB-">AB-</option>
-                            </select>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="quantity" class="form-label">Number of Units *</label>
-                            <input type="number" class="form-control" id="quantity" name="quantity" min="1" placeholder="e.g., 2" required>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="urgency" class="form-label">Urgency Level *</label>
-                            <select class="form-control" id="urgency" name="urgency" required>
-                                <option value="normal">Normal</option>
-                                <option value="urgent">Urgent</option>
-                                <option value="critical">Critical (Emergency)</option>
-                            </select>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="reason" class="form-label">Reason for Request</label>
-                            <textarea class="form-control" id="reason" name="reason" rows="3" placeholder="Mention the medical reason if any"></textarea>
-                        </div>
-
-                        <div class="alert alert-info mb-3">
-                            <i class="fas fa-info-circle"></i>
-                            <strong>Processing:</strong> Your request will be reviewed by our admin team and matched with available donors.
-                        </div>
-
-                        <button type="submit" class="btn btn-primary-red w-100 mb-3">
-                            <i class="fas fa-paper-plane"></i> Submit Request
-                        </button>
-                    </form>
-
-                    <hr>
-                    
-                    <h6 class="mb-3"><i class="fas fa-clock"></i> Urgency Levels</h6>
-                    <div class="mb-2">
-                        <span class="urgency-indicator urgency-normal"></span>
-                        <strong>Normal:</strong> <small>Routine request (24-48 hours)</small>
-                    </div>
-                    <div class="mb-2">
-                        <span class="urgency-indicator urgency-urgent"></span>
-                        <strong>Urgent:</strong> <small>Time-sensitive (6-12 hours)</small>
-                    </div>
-                    <div>
-                        <span class="urgency-indicator urgency-critical"></span>
-                        <strong>Critical:</strong> <small>Emergency (ASAP)</small>
-                    </div>
+<div class="container-lg py-5 d-flex align-items-center justify-content-center">
+    <div class="card border-0 shadow-lg w-100" style="max-width: 700px; border-radius: var(--radius-lg);">
+        <div class="card-header bg-white border-bottom p-4">
+            <h4 class="fw-bold mb-0"><i class="fas fa-notes-medical text-danger me-2"></i> Submit Blood Request</h4>
+        </div>
+        
+        <div class="card-body p-4 p-md-5">
+            <div class="alert alert-danger border-0 shadow-sm mb-4 d-flex align-items-center gap-3 rounded-3">
+                <i class="fas fa-exclamation-triangle fs-4"></i>
+                <div>
+                    <strong>Emergency?</strong>
+                    <div class="small">Select "Critical" urgency for priority AI routing to active donors.</div>
                 </div>
             </div>
+
+            <form method="POST" action="/request-blood" enctype="multipart/form-data">
+                <div class="row g-3 mb-3">
+                    <div class="col-12 col-sm-6">
+                        <label class="form-label text-muted small fw-bold">Blood Group Needed *</label>
+                        <select class="form-select" name="blood_group" required>
+                            <option value="">Select Group</option>
+                            <option value="O+">O+ (Universal Recipient)</option>
+                            <option value="O-">O-</option>
+                            <option value="A+">A+</option>
+                            <option value="A-">A-</option>
+                            <option value="B+">B+</option>
+                            <option value="B-">B-</option>
+                            <option value="AB+">AB+ (Universal Recipient)</option>
+                            <option value="AB-">AB-</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-sm-6">
+                        <label class="form-label text-muted small fw-bold">Number of Units *</label>
+                        <input type="number" class="form-control" name="quantity" min="1" placeholder="e.g., 2" required>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label text-muted small fw-bold">Urgency Level *</label>
+                    <div class="d-flex flex-column flex-sm-row gap-2">
+                        <input type="radio" class="btn-check" name="urgency" id="urgencyNormal" value="normal" checked>
+                        <label class="btn btn-outline-info w-100" for="urgencyNormal">Normal (24-48h)</label>
+
+                        <input type="radio" class="btn-check" name="urgency" id="urgencyUrgent" value="urgent">
+                        <label class="btn btn-outline-warning w-100" for="urgencyUrgent">Urgent (6-12h)</label>
+
+                        <input type="radio" class="btn-check" name="urgency" id="urgencyCritical" value="critical">
+                        <label class="btn btn-outline-danger w-100" for="urgencyCritical">Critical (ASAP)</label>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label text-muted small fw-bold">Medical Reason / Notes</label>
+                    <textarea class="form-control" name="reason" rows="3" placeholder="Provide any necessary context for the donors or admin review team..."></textarea>
+                </div>
+
+                <div class="mb-4">
+        <label class="form-label text-muted small fw-bold">Doctor's Requisition Form *</label>
+        <div class="input-group">
+            <input type="file" class="form-control" name="requisition_doc" id="requisition_doc" accept=".pdf,.jpg,.jpeg,.png" required>
+        </div>
+        <div class="form-text small mt-2">
+            <i class="fas fa-shield-alt text-success me-1"></i> Upload a clear photo or PDF of the hospital permit/doctor's prescription. Max size 5MB.
+        </div>
+    </div>
+                <button type="submit" class="btn btn-primary-red w-100 btn-lg">
+                    Submit Request
+                </button>
+            </form>
         </div>
     </div>
 </div>

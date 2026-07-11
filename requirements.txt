@@ -8,6 +8,7 @@ pillow>=10.0.0
 python-dotenv>=1.0.0
 requests>=2.31.0
 flask-cors>=4.0.0
+groq
 
 # AI/ML Libraries (for demand prediction)
 numpy>=1.24.0
