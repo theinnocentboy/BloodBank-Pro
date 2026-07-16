@@ -1,0 +1,132 @@
+{% extends "admin-base.html" %}
+
+{% block title %}Admin Profile - BloodBank{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 px-3">
+    <div class="mb-4">
+        <h2 class="fw-bold"><i class="fas fa-user-shield text-primary me-2"></i>Admin Profile Settings</h2>
+    </div>
+
+    <div class="row g-4">
+        <!-- Avatar Card -->
+        <div class="col-12 col-lg-4">
+            <div class="card border-0 shadow-sm border-top border-primary border-4">
+                <div class="card-body text-center p-4">
+
+                    <!-- AVATAR WRAPPER WITH EDIT BUTTON -->
+                    <div class="position-relative d-inline-block mb-3">
+                        {% if user.profile_pic %}
+                            {% if user.profile_pic.startswith('http') %}
+                            <img src="{{ user.profile_pic }}" alt="Profile" class="rounded-circle object-fit-cover shadow-sm mx-auto" width="96" height="96">
+                            {% else %}
+                            <img src="{{ url_for('static', filename='uploads/profiles/' + user.profile_pic) }}" alt="Profile" class="rounded-circle object-fit-cover shadow-sm mx-auto" width="96" height="96">
+                            {% endif %}
+                        {% else %}
+                            <div class="bg-light rounded-circle d-flex align-items-center justify-content-center mx-auto text-primary shadow-sm border" style="width: 96px; height: 96px; font-size: 2.5rem;">
+                                <i class="fas fa-user-shield"></i>
+                            </div>
+                        {% endif %}
+
+                        <form id="adminAvatarForm" method="POST" enctype="multipart/form-data">
+                            <input type="hidden" name="action" value="update_avatar">
+                            <label for="admin_pic_upload" class="position-absolute bottom-0 end-0 bg-white border shadow-sm d-flex align-items-center justify-content-center rounded-circle hover-lift" style="width: 32px; height: 32px; cursor: pointer; transform: translate(5px, 5px); transition: all 0.2s;" title="Change Picture">
+                                <i class="fas fa-camera small text-primary"></i>
+                            </label>
+                            <input type="file" id="admin_pic_upload" name="profile_pic" class="d-none" accept=".jpg, .jpeg, .png" onchange="document.getElementById('adminAvatarForm').submit();">
+                        </form>
+                    </div>
+
+                    <h4 class="fw-bold mb-1">{{ user.full_name }}</h4>
+                    <p class="text-muted small mb-3">@{{ user.username }}</p>
+                    <span class="badge bg-primary-subtle text-primary px-3 py-2 rounded-pill mb-4">{{ user.role|capitalize }}</span>
+
+                    <div class="text-start">
+                        <div class="d-flex align-items-center gap-3 mb-2">
+                            <i class="fas fa-envelope text-muted" style="width: 20px;"></i>
+                            <span class="small text-dark">{{ user.email }}</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-3 mb-2">
+                            <i class="fas fa-phone text-muted" style="width: 20px;"></i>
+                            <span class="small text-dark">{{ user.phone or 'Not provided' }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scrollable Tabs Area -->
+        <div class="col-12 col-lg-8">
+            <div class="card border-0 shadow-sm">
+                
+                <style>
+                    .admin-tab {
+                        color: #6c757d; 
+                        transition: all 0.2s ease-in-out;
+                    }
+                    .admin-tab.active {
+                        color: #0d6efd !important; 
+                        font-weight: bold;
+                        border-bottom: 3px solid #0d6efd !important;
+                    }
+                </style>
+
+                <div class="card-header bg-white border-bottom p-0 overflow-x-auto">
+                    <ul class="nav nav-tabs border-0 flex-nowrap px-3 pt-3" style="white-space: nowrap;" id="profileTabs">
+                        <li class="nav-item">
+                            <button class="nav-link bg-transparent border-0 admin-tab {% if request.args.get('tab', 'details') == 'details' %}active{% endif %}" data-bs-toggle="tab" data-bs-target="#details">Personal</button>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="card-body p-4">
+                    <div class="tab-content">
+                        <!-- Details Tab -->
+                        <div class="tab-pane fade show active" id="details">
+                            <form method="POST" enctype="multipart/form-data">
+                                <input type="hidden" name="action" value="details">
+
+                                <div class="mb-3">
+                                    <label class="form-label text-muted small fw-bold">Full Name</label>
+                                    <input type="text" class="form-control" name="full_name" value="{{ user.full_name }}" required>
+                                </div>
+
+                                <div class="row">
+                                    <!-- Gender Field -->
+                                    <div class="col-md-6 mb-3">
+                                        <label for="gender" class="form-label text-muted fw-bold mb-1">Gender</label>
+                                        <select class="form-select" id="gender" name="gender">
+                                            <option value="" {% if not user.gender %}selected{% endif %}>Select Gender</option>
+                                            <option value="Male" {% if user.gender=='Male' %}selected{% endif %}>Male</option>
+                                            <option value="Female" {% if user.gender=='Female' %}selected{% endif %}>Female</option>
+                                            <option value="Other" {% if user.gender=='Other' %}selected{% endif %}>Other</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Date of Birth Field -->
+                                    <div class="col-md-6 mb-3">
+                                        <label for="dob" class="form-label text-muted fw-bold mb-1">Date of Birth</label>
+                                        <input type="date" class="form-control" id="dob" name="dob" value="{{ user.dob.strftime('%Y-%m-%d') if user.dob else '' }}">
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label text-muted small fw-bold">Email</label>
+                                    <input type="email" class="form-control" name="email" value="{{ user.email }}" required>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label class="form-label text-muted small fw-bold">Phone Number</label>
+                                    <input type="text" class="form-control" name="phone" value="{{ user.phone if user.phone else '' }}">
+                                </div>
+                                
+                                <button type="submit" class="btn btn-primary w-100">Save Admin Profile</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

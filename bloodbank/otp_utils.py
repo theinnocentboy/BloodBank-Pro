@@ -6,6 +6,8 @@ import io
 import base64
 from datetime import datetime, timedelta
 from io import BytesIO
+from bloodbank.email_utils import send_otp_email
+
 
 
 def generate_otp_secret():

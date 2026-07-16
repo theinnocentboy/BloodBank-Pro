@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Book Appointment - BloodBank{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-8 col-lg-6">
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-header bg-danger text-white text-center py-3 rounded-top-4">
+                    <h4 class="mb-0"><i class="fas fa-calendar-plus me-2"></i> Schedule Donation</h4>
+                </div>
+                <div class="card-body p-4 p-md-5">
+                    <p class="text-muted text-center mb-4">Select a date to view available facility time slots.</p>
+                    
+                    <form method="POST" action="{{ url_for('donor.book_appointment') }}" id="bookingForm">
+                        
+                        <!-- Date Selection -->
+                        <div class="mb-4">
+                            <label for="appointment_date" class="form-label fw-bold">Select Date</label>
+                            <input type="date" id="appointment_date" name="date" class="form-control form-control-lg" required>
+                        </div>
+                        
+                        <!-- Dynamic Slot Selection -->
+                        <div class="mb-4">
+                            <label for="slot_id" class="form-label fw-bold">Available Time Slots</label>
+                            <select id="slot_id" name="slot_id" class="form-select form-select-lg" required disabled>
+                                <option value="" selected disabled>Please select a date first...</option>
+                            </select>
+                            <div id="slotHelp" class="form-text text-danger d-none mt-2">
+                                <i class="fas fa-lock me-1"></i> No available slots for this date. They may be fully booked or locked by the Administrator.
+                            </div>
+                        </div>
+                        
+                        <!-- Submit Button -->
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" id="submitBtn" class="btn btn-danger btn-lg rounded-pill" disabled>
+                                Confirm Appointment
+                            </button>
+                            <a href="{{ url_for('user.dashboard') }}" class="btn btn-light rounded-pill mt-2">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const dateInput = document.getElementById('appointment_date');
+        const slotSelect = document.getElementById('slot_id');
+        const submitBtn = document.getElementById('submitBtn');
+        const slotHelp = document.getElementById('slotHelp');
+        
+        // 1. Set the calendar minimum date to today so users can't book in the past
+        const today = "{{current_date}}";
+        dateInput.setAttribute('min', today);
+
+        // 2. Listen for the user picking a date
+        dateInput.addEventListener('change', function() {
+            const selectedDate = this.value;
+            
+            if (!selectedDate) {
+                resetDropdown();
+                return;
+            }
+
+            // Lock the UI while loading
+            slotSelect.innerHTML = '<option value="" selected disabled>Loading slots...</option>';
+            slotSelect.disabled = true;
+            submitBtn.disabled = true;
+            slotHelp.classList.add('d-none');
+
+            // 3. Fetch from the dynamic API route we just built in donor.py
+            fetch(`/api/get-available-slots/${selectedDate}`)
+                .then(response => response.json())
+                .then(data => {
+                    slotSelect.innerHTML = '<option value="" selected disabled>Choose a time slot...</option>';
+                    
+                    if (data.slots && data.slots.length > 0) {
+                        // Populate dropdown with available slots
+                        data.slots.forEach(slot => {
+                            const option = document.createElement('option');
+                            option.value = slot.slot_id;
+                            option.textContent = `${slot.time} (${slot.remaining} spots remaining)`;
+                            slotSelect.appendChild(option);
+                        });
+                        
+                        slotSelect.disabled = false;
+                    } else {
+                        // Alert user if Admin locked everything or if it's full
+                        slotSelect.innerHTML = '<option value="" selected disabled>No slots available</option>';
+                        slotHelp.classList.remove('d-none');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching slots:', error);
+                    slotSelect.innerHTML = '<option value="" selected disabled>Error loading slots</option>';
+                });
+        });
+
+        // 4. Only enable the submit button once a valid slot is chosen
+        slotSelect.addEventListener('change', function() {
+            submitBtn.disabled = !this.value;
+        });
+
+        function resetDropdown() {
+            slotSelect.innerHTML = '<option value="" selected disabled>Please select a date first...</option>';
+            slotSelect.disabled = true;
+            submitBtn.disabled = true;
+            slotHelp.classList.add('d-none');
+        }
+    });
+</script>
+{% endblock %}

@@ -7,15 +7,16 @@ Features:
 - Answers donation FAQ
 - Guides emergency users
 - Explains donation process
-- Helps navigation
+- Pre-compiled Regex Intent Matching (Optimized)
 - Maintains conversation history
 - Session-based memory
 
-Uses rule-based responses (can be upgraded to OpenAI/Dialogflow).
+Uses highly optimized rule-based responses.
 """
 
-from flask import current_app, session
+from flask import current_app
 from datetime import datetime
+import re
 from bloodbank.models import ChatConversation, User
 from bloodbank.extensions import db
 
@@ -27,8 +28,8 @@ class ChatbotAssistant:
         self.name = "BloodBot"
         self.version = "1.0"
         
-        # Knowledge base for FAQ
-        self.knowledge_base = {
+        # Raw Knowledge Base
+        raw_knowledge_base = {
             'donation': {
                 'keywords': ['donate', 'donation', 'how to donate', 'become a donor'],
                 'response': 'To become a blood donor: 1) Register as a donor 2) Complete health screening 3) Schedule donation appointment 4) Donate at our center. Blood donation takes about 45 minutes and is completely safe!'
@@ -42,47 +43,54 @@ class ChatbotAssistant:
                 'response': 'Donation process: 1) Registration & health check (5 min) 2) Refreshment (5 min) 3) Blood draw (5-10 min) 4) Recovery area (15 min). Total time: 45-60 minutes.'
             },
             'emergency': {
-                'keywords': ['emergency', 'urgent', 'critical', 'asap', 'immediate'],
+                'keywords': ['emergency', 'urgent', 'critical', 'asap', 'immediate', 'or', 'er'],
                 'response': 'For emergency blood requests: Click "Request Blood" and select "Emergency". Our AI will prioritize your request and notify nearby donors immediately.'
             },
             'blood_groups': {
-                'keywords': ['blood group', 'blood type', 'o+', 'a+', 'b+', 'ab+', 'o-', 'a-', 'b-', 'ab-'],
-                'response': 'Blood groups: O+ (universal donor), O- (emergency donor), AB+ (universal recipient), AB- (rare). Different groups are needed for different patients. Check your type with our search tool!'
+                'keywords': ['blood group', 'blood type', 'o\+', 'a\+', 'b\+', 'ab\+', 'o\-', 'a\-', 'b\-', 'ab\-'],
+                'response': 'Blood groups: O+ (universal donor), O- (emergency donor), AB+ (universal recipient), AB- (rare). Check your type with our search tool!'
             },
             'search': {
                 'keywords': ['search', 'find donor', 'find blood', 'locate', 'nearest'],
-                'response': 'Use our Smart Donor Search tool: 1) Select blood group 2) Choose location/city 3) AI finds nearest donors 4) View contact info and make request. Easy and fast!'
+                'response': 'Use our Smart Donor Search tool: 1) Select blood group 2) Choose location/city 3) AI finds nearest donors 4) View contact info and make request.'
             },
             'safety': {
                 'keywords': ['safe', 'safety', 'risk', 'side effect', 'infection'],
-                'response': 'Blood donation is safe! We use sterile equipment for each donation. Mild side effects (dizziness, minor bruising) are rare. Your body replenishes donated blood within weeks.'
+                'response': 'Blood donation is safe! We use sterile equipment for each donation. Mild side effects are rare. Your body replenishes donated blood within weeks.'
             },
             'frequency': {
-                'keywords': ['how often', 'frequency', 'when can i donate again', 'donation interval'],
-                'response': 'Safe donation frequency: You can donate whole blood every 8 weeks (56 days). Plasma donors can donate every 2 weeks. This ensures your health and blood quality.'
+                'keywords': ['how often', 'frequency', 'when can i donate again', 'interval'],
+                'response': 'Safe donation frequency: You can donate whole blood every 8 weeks (56 days). Plasma donors can donate every 2 weeks.'
             },
             'greeting': {
                 'keywords': ['hi', 'hello', 'hey', 'help', 'support', 'chat'],
-                'response': f'Hello! I\'m {self.name}, your blood donation assistant. I can help you with: donation FAQs, emergency requests, finding donors, and navigation. What would you like to know?'
+                'response': f'Hello! I\'m {self.name}, your blood donation assistant. I can help with FAQs, emergency requests, and finding donors. What would you like to know?'
             }
         }
+        
+        # O(1) Pre-compilation Optimization: 
+        # Compile keywords into fast regex patterns to prevent substring false-positives
+        self.knowledge_base = {}
+        for intent, data in raw_knowledge_base.items():
+            compiled_patterns = []
+            for kw in data['keywords']:
+                # Negative lookbehinds/lookaheads ensure we match exact words, 
+                # safely handling characters like '+' and '-' in blood types.
+                pattern = re.compile(rf'(?<![a-z0-9]){kw}(?![a-z0-9])', re.IGNORECASE)
+                compiled_patterns.append(pattern)
+                
+            self.knowledge_base[intent] = {
+                'patterns': compiled_patterns,
+                'response': data['response']
+            }
     
     def process_message(self, user_message: str, user_id: int = None) -> dict:
-        """
-        Process user message and generate AI response.
-        
-        Args:
-            user_message: User's chat message
-            user_id: ID of user (optional)
-        
-        Returns:
-            dict: Response with message, suggestions, and metadata
-        """
+        """Process user message and generate AI response."""
         try:
             # Clean input
-            message_lower = user_message.lower().strip()
+            message_clean = user_message.strip()
             
-            if not message_lower:
+            if not message_clean:
                 return {
                     'success': False,
                     'message': 'Please enter a message.',
@@ -90,11 +98,11 @@ class ChatbotAssistant:
                 }
             
             # Match intent and get response
-            response = self._match_intent_and_respond(message_lower)
+            response = self._match_intent_and_respond(message_clean)
             
             # Save conversation to database if user logged in
             if user_id:
-                self._save_conversation(user_id, user_message, response['response'])
+                self._save_conversation(user_id, message_clean, response['response'])
             
             return {
                 'success': True,
@@ -114,16 +122,7 @@ class ChatbotAssistant:
             }
     
     def get_conversation_history(self, user_id: int, limit: int = 10) -> dict:
-        """
-        Get conversation history for a user.
-        
-        Args:
-            user_id: ID of user
-            limit: Maximum messages to return
-        
-        Returns:
-            dict: Conversation history
-        """
+        """Get conversation history for a user."""
         try:
             conversations = ChatConversation.query.filter_by(
                 user_id=user_id
@@ -149,11 +148,10 @@ class ChatbotAssistant:
             return {'success': False, 'message': str(e)}
     
     def _match_intent_and_respond(self, message: str) -> dict:
-        """Match user intent and generate response."""
-        # Check each category
+        """Match user intent using pre-compiled regex objects."""
         for intent, data in self.knowledge_base.items():
-            for keyword in data['keywords']:
-                if keyword in message:
+            for pattern in data['patterns']:
+                if pattern.search(message):
                     return {
                         'intent': intent,
                         'response': data['response'],
@@ -196,15 +194,7 @@ class ChatbotAssistant:
             current_app.logger.warning(f"Failed to save conversation: {e}")
     
     def get_chat_stats(self, user_id: int = None) -> dict:
-        """
-        Get chatbot usage statistics.
-        
-        Args:
-            user_id: Optional - stats for specific user
-        
-        Returns:
-            dict: Statistics
-        """
+        """Get chatbot usage statistics."""
         try:
             if user_id:
                 count = ChatConversation.query.filter_by(user_id=user_id).count()

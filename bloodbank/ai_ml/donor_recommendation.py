@@ -31,21 +31,6 @@ class RecommendationEngine:
     def get_recommended_donors(self, blood_request_id: int, top_n: int = 5) -> dict:
         """
         Get top N recommended donors for a blood request.
-        
-        Args:
-            blood_request_id: ID of blood request
-            top_n: Number of recommendations to return
-        
-        Returns:
-            dict: {
-                'success': bool,
-                'message': str,
-                'request_id': int,
-                'blood_group': str,
-                'recommendations': list,
-                'fulfillment_time': int (hours),
-                'total_donors_found': int
-            }
         """
         try:
             # Get blood request
@@ -57,7 +42,7 @@ class RecommendationEngine:
                     'request_id': blood_request_id
                 }
             
-            # Get all available donors with matching blood group
+            # Get all available donors with exact matching blood group
             matching_donors = Donor.query.filter(
                 and_(
                     Donor.blood_group == blood_request.blood_group,
@@ -99,9 +84,16 @@ class RecommendationEngine:
                 donor_dict['score'] = round(score, 2)
                 recommendations_data.append(donor_dict)
                 
-                # Log recommendation
-                self._log_recommendation(blood_request_id, donor.id, score, ranking)
+                # Stage recommendation for bulk insert (No commit yet)
+                self._stage_recommendation_log(blood_request_id, donor.id, score, ranking)
             
+            # Execute a single, highly optimized bulk commit for all logs
+            try:
+                db.session.commit()
+            except Exception as commit_error:
+                db.session.rollback()
+                current_app.logger.error(f"Bulk commit failed for recommendations: {commit_error}")
+
             # Estimate fulfillment time
             fulfillment_time = self._estimate_fulfillment_time(
                 len(top_donors),
@@ -130,23 +122,10 @@ class RecommendationEngine:
     def get_emergency_donors(self, blood_request_id: int) -> dict:
         """
         Get fastest available donors for emergency requests.
-        
-        Prioritizes:
-        1. Nearby donors
-        2. Active donors
-        3. High availability
-        
-        Args:
-            blood_request_id: ID of blood request
-        
-        Returns:
-            dict: Emergency donor recommendations
         """
-        # Get regular recommendations
         result = self.get_recommended_donors(blood_request_id, top_n=3)
         
         if result['success'] and result['recommendations']:
-            # For emergency, only return top 3 fastest
             result['recommendations'] = result['recommendations'][:3]
             result['message'] = 'Emergency donors - Top 3 fastest matches'
         
@@ -185,8 +164,8 @@ class RecommendationEngine:
         
         return base_time
     
-    def _log_recommendation(self, request_id: int, donor_id: int, score: float, ranking: int):
-        """Log recommendation for analytics."""
+    def _stage_recommendation_log(self, request_id: int, donor_id: int, score: float, ranking: int):
+        """Stage recommendation for analytics without committing to the database yet."""
         try:
             recommendation_log = DonorRecommendation(
                 blood_request_id=request_id,
@@ -195,9 +174,8 @@ class RecommendationEngine:
                 ranking=ranking
             )
             db.session.add(recommendation_log)
-            db.session.commit()
         except Exception as e:
-            current_app.logger.error(f"Failed to log recommendation: {e}")
+            current_app.logger.error(f"Failed to stage recommendation: {e}")
 
 
 # Initialize engine

@@ -2,7 +2,7 @@
 
 from flask import Blueprint, flash, redirect, render_template, request, session, url_for
 from datetime import datetime
-
+from bloodbank.otp_utils import generate_manual_otp_code, get_otp_expiry_time
 from bloodbank.decorators import login_required
 from bloodbank.extensions import db
 from bloodbank.models import User
@@ -156,14 +156,11 @@ def regenerate_backup_codes():
 
 @otp_bp.route("/send-manual-code", methods=["POST"])
 def send_manual_otp_code():
-    """Reset/manual OTP fallback endpoint.
-
-    SMTP-based OTP delivery is disabled in the current configuration.
-    """
+    """Generates a 6-digit code and emails it to the user."""
     pending_user_id = session.get("pending_user_id")
     
     if not pending_user_id:
-        flash("Invalid request.", "danger")
+        flash("Invalid request. Your session may have expired.", "danger")
         return redirect(url_for("auth.login"))
     
     user = User.query.get(pending_user_id)
@@ -171,7 +168,19 @@ def send_manual_otp_code():
         flash("User not found.", "danger")
         return redirect(url_for("auth.login"))
     
-    # Email delivery is intentionally disabled after SMTP reset.
-    flash("Email-based OTP delivery is disabled. Use your authenticator app or a backup code.", "warning")
+    # 1. Generate the 6-digit code and set expiry (5 minutes)
+    otp_code = generate_manual_otp_code()
+    user.manual_otp_code = otp_code
+    user.manual_otp_expires_at = get_otp_expiry_time(300)
+    
+    # 2. Save it to the database so auth.py can verify it later
+    db.session.commit()
+    
+    # 3. Send the email
+    if send_otp_email(user.email, otp_code):
+        flash(f"A 6-digit code has been sent to {user.email}.", "success")
+    else:
+        # Failsafe in case SMTP is down
+        flash("Email delivery failed. Please check your server configuration or use your Authenticator app.", "danger")
     
     return redirect(url_for("auth.verify_otp"))

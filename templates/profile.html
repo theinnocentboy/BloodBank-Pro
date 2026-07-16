@@ -1,5 +1,16 @@
 {% extends "base.html" %}
+{% block extra_css %}
+<!-- Flatpickr Core & Minimalist Theme -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/airbnb.css">
+<style>
+    /* Slight override to make the Flatpickr input look seamless */
+    .flatpickr-input[readonly] {
+        background-color: #fff;
+    }
+</style>
 
+{% endblock %}
 {% block title %}Profile Settings - BloodBank{% endblock %}
 
 {% block content %}
@@ -13,13 +24,48 @@
         <div class="col-12 col-lg-4">
             <div class="card border-0 shadow-sm border-top border-danger border-4">
                 <div class="card-body text-center p-4">
-                    <div class="bg-light rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3 text-danger" style="width: 80px; height: 80px; font-size: 2rem;">
-                        <i class="fas fa-user"></i>
+
+                    <!-- AVATAR WRAPPER WITH EDIT BUTTON -->
+                    <div class="position-relative d-inline-block mb-3">
+                        <!-- Dynamic Avatar Display -->
+                        {% if user.profile_pic %}
+                        {% if user.profile_pic.startswith('http') %}
+
+                        <!-- ADDED referrerpolicy TO BYPASS GOOGLE'S IMAGE BLOCK -->
+                        <img src="{{ user.profile_pic }}" alt="Profile"
+                            class="rounded-circle object-fit-cover shadow-sm mx-auto" width="96" height="96"
+                            referrerpolicy="no-referrer">
+
+                        {% else %}
+                        <img src="{{ url_for('static', filename='uploads/profiles/' + user.profile_pic) }}"
+                            alt="Profile" class="rounded-circle object-fit-cover shadow-sm mx-auto" width="96"
+                            height="96">
+                        {% endif %}
+                        {% else %}
+                        <div class="bg-light rounded-circle d-flex align-items-center justify-content-center mx-auto text-danger shadow-sm border"
+                            style="width: 96px; height: 96px; font-size: 2.5rem;">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        {% endif %}
+
+                        <!-- Hidden Form & Camera Overlay -->
+                        <form id="avatarForm" method="POST" enctype="multipart/form-data">
+                            <input type="hidden" name="action" value="update_avatar">
+                            <label for="profile_pic_upload"
+                                class="position-absolute bottom-0 end-0 bg-white border shadow-sm d-flex align-items-center justify-content-center rounded-circle hover-lift"
+                                style="width: 32px; height: 32px; cursor: pointer; transform: translate(5px, 5px); transition: all 0.2s;"
+                                title="Change Profile Picture">
+                                <i class="fas fa-camera small text-danger"></i>
+                            </label>
+                            <input type="file" id="profile_pic_upload" name="profile_pic" class="d-none"
+                                accept=".jpg, .jpeg, .png" onchange="document.getElementById('avatarForm').submit();">
+                        </form>
                     </div>
+
                     <h4 class="fw-bold mb-1">{{ user.full_name }}</h4>
                     <p class="text-muted small mb-3">@{{ user.username }}</p>
                     <span class="badge bg-danger-subtle text-danger px-3 py-2 rounded-pill mb-4">{{ role_label }}</span>
-                    
+
                     <div class="text-start">
                         <div class="d-flex align-items-center gap-3 mb-2">
                             <i class="fas fa-envelope text-muted" style="width: 20px;"></i>
@@ -43,21 +89,45 @@
         <!-- Scrollable Tabs Area -->
         <div class="col-12 col-lg-8">
             <div class="card border-0 shadow-sm">
+
+                <!-- Fixed Tab Styles -->
+                <style>
+                    .profile-tab {
+                        color: #6c757d;
+                        transition: all 0.2s ease-in-out;
+                    }
+
+                    .profile-tab.active {
+                        color: #dc3545 !important;
+                        font-weight: bold;
+                        border-bottom: 3px solid #dc3545 !important;
+                    }
+                </style>
+
                 <!-- Mobile Horizontal Scroll for Tabs -->
                 <div class="card-header bg-white border-bottom p-0 overflow-x-auto">
-                    <ul class="nav nav-tabs border-0 flex-nowrap px-3 pt-3" style="white-space: nowrap;" id="profileTabs">
+                    <ul class="nav nav-tabs border-0 flex-nowrap px-3 pt-3" style="white-space: nowrap;"
+                        id="profileTabs">
                         <li class="nav-item">
-                            <button class="nav-link bg-transparent border-0 {% if request.args.get('tab', 'details') == 'details' %}active border-bottom border-danger border-3 text-danger fw-bold{% else %}text-muted{% endif %}" data-bs-toggle="tab" data-bs-target="#details">Personal</button>
+                            <button
+                                class="nav-link bg-transparent border-0 profile-tab {% if request.args.get('tab', 'details') == 'details' %}active{% endif %}"
+                                data-bs-toggle="tab" data-bs-target="#details">Personal</button>
                         </li>
                         <li class="nav-item">
-                            <button class="nav-link bg-transparent border-0 {% if request.args.get('tab') == 'security' %}active border-bottom border-danger border-3 text-danger fw-bold{% else %}text-muted{% endif %}" data-bs-toggle="tab" data-bs-target="#security">Security</button>
+                            <button
+                                class="nav-link bg-transparent border-0 profile-tab {% if request.args.get('tab') == 'security' %}active{% endif %}"
+                                data-bs-toggle="tab" data-bs-target="#security">Security</button>
                         </li>
                         <li class="nav-item">
-                            <button class="nav-link bg-transparent border-0 {% if request.args.get('tab') == 'two-factor' %}active border-bottom border-danger border-3 text-danger fw-bold{% else %}text-muted{% endif %}" data-bs-toggle="tab" data-bs-target="#two-factor">2FA</button>
+                            <button
+                                class="nav-link bg-transparent border-0 profile-tab {% if request.args.get('tab') == 'two-factor' %}active{% endif %}"
+                                data-bs-toggle="tab" data-bs-target="#two-factor">2FA</button>
                         </li>
                         {% if donor %}
                         <li class="nav-item">
-                            <button class="nav-link bg-transparent border-0 {% if request.args.get('tab') == 'donor' %}active border-bottom border-danger border-3 text-danger fw-bold{% else %}text-muted{% endif %}" data-bs-toggle="tab" data-bs-target="#donor">Donor Info</button>
+                            <button
+                                class="nav-link bg-transparent border-0 profile-tab {% if request.args.get('tab') == 'donor' %}active{% endif %}"
+                                data-bs-toggle="tab" data-bs-target="#donor">Donor Info</button>
                         </li>
                         {% endif %}
                     </ul>
@@ -66,82 +136,202 @@
                 <div class="card-body p-4">
                     <div class="tab-content">
                         <!-- Details Tab -->
-                        <div class="tab-pane fade {% if request.args.get('tab', 'details') == 'details' %}show active{% endif %}" id="details">
+                        <div class="tab-pane fade {% if request.args.get('tab', 'details') == 'details' %}show active{% endif %}"
+                            id="details">
+
                             <form method="POST">
                                 <input type="hidden" name="action" value="details">
+
                                 <div class="mb-3">
                                     <label class="form-label text-muted small fw-bold">Full Name</label>
-                                    <input type="text" class="form-control" name="full_name" value="{{ user.full_name }}" required>
+                                    <input type="text" class="form-control" name="full_name"
+                                        value="{{ user.full_name }}" required>
                                 </div>
+
+                                <div class="row">
+                                    <!-- Gender Field -->
+                                    <div class="col-md-6 mb-3">
+                                        <label for="gender" class="form-label text-muted fw-bold mb-1">Gender</label>
+                                        <select class="form-select" id="gender" name="gender">
+                                            <option value="" {% if not user.gender %}selected{% endif %}>Select Gender
+                                            </option>
+                                            <option value="Male" {% if user.gender=='Male' %}selected{% endif %}>Male
+                                            </option>
+                                            <option value="Female" {% if user.gender=='Female' %}selected{% endif %}>
+                                                Female</option>
+                                            <option value="Other" {% if user.gender=='Other' %}selected{% endif %}>Other
+                                            </option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Date of Birth Field -->
+                                    <div class="col-md-6 mb-3">
+                                        <label for="dob" class="form-label text-muted fw-bold mb-1">Date of
+                                            Birth</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-white border-end-0"><i
+                                                    class="fas fa-calendar-alt text-muted"></i></span>
+                                            <input type="text" class="form-control border-start-0 ps-0" id="dob"
+                                                name="dob" placeholder="Select your birth date"
+                                                value="{{ user.dob.strftime('%Y-%m-%d') if user.dob else '' }}">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Email Field -->
                                 <div class="mb-3">
-                                    <label class="form-label text-muted small fw-bold">Email</label>
-                                    <input type="email" class="form-control" name="email" value="{{ user.email }}" required>
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <label for="email" class="form-label text-muted fw-bold mb-0">Email</label>
+
+                                        <!-- Dynamic Email Badge -->
+                                        {% if user.email_verified %}
+                                        <span
+                                            class="badge bg-success-subtle text-success border border-success-subtle rounded-pill small px-2 py-1">
+                                            <i class="fas fa-check-circle me-1"></i> Verified
+                                        </span>
+                                        {% else %}
+                                        <a href="{{ url_for('auth.send_email_verification') }}"
+                                            class="badge bg-warning-subtle text-dark border border-warning rounded-pill text-decoration-none hover-lift small px-2 py-1"
+                                            title="Click to verify your email">
+                                            <i class="fas fa-exclamation-triangle text-danger me-1"></i> Verify Now
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                    <input type="email" class="form-control" id="email" name="email"
+                                        value="{{ user.email }}">
                                 </div>
+
+                                <!-- Phone Number Field -->
                                 <div class="mb-4">
-                                    <label class="form-label text-muted small fw-bold">Phone Number</label>
-                                    <input type="tel" class="form-control" name="phone" value="{{ user.phone or '' }}">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <label for="phone" class="form-label text-muted fw-bold mb-0">Phone
+                                            Number</label>
+
+                                        <!-- Phone Badge -->
+                                        {% if user.phone_verified %}
+                                        <span
+                                            class="badge bg-success-subtle text-success border border-success-subtle rounded-pill small px-2 py-1">
+                                            <i class="fas fa-mobile-alt me-1 animate-pulse"></i> Verified
+                                        </span>
+                                        {% else %}
+                                        <a href="{{ url_for('auth.send_phone_verification') }}"
+                                            class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill small px-2 py-1 text-decoration-none">
+                                            Verify Now
+                                        </a>
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Conditionally render value and readonly status -->
+                                    <input type="text" class="form-control" id="phone" name="phone"
+                                        value="{{ user.phone if user.phone else '' }}" {% if user.phone_verified
+                                        %}readonly{% endif %}>
+
+                                    <!-- Conditionally display the helper text -->
+                                    {% if user.phone_verified %}
+                                    <small class="text-muted mt-1 d-block"><i class="fas fa-lock"></i> Phone number
+                                        cannot be changed after verification.</small>
+                                    {% else %}
+                                    <small class="text-danger mt-1 d-block"><i class="fas fa-exclamation-circle"></i>
+                                        Please enter your phone number to complete your profile.</small>
+                                    {% endif %}
                                 </div>
                                 <button type="submit" class="btn btn-primary-red w-100">Save Changes</button>
                             </form>
                         </div>
-                        
+
                         <!-- Security Tab -->
-                        <div class="tab-pane fade {% if request.args.get('tab') == 'security' %}show active{% endif %}" id="security">
+                        <div class="tab-pane fade {% if request.args.get('tab') == 'security' %}show active{% endif %}"
+                            id="security">
                             <form method="POST">
+
+                                <!-- UPGRADED CHECK: Looks for Auth0 session AND checks the permanent database flag -->
+                                {% if session.get('auth0_id') and not user.has_local_password %}
+
+                                <input type="hidden" name="action" value="set_password">
+                                <div
+                                    class="alert alert-success small mb-4 border-0 bg-success-subtle text-success-emphasis rounded-3">
+                                    <i class="fas fa-shield-check me-2"></i> <strong>Social Login Verified.</strong>
+                                    <br>
+                                    Because you securely authenticated via a trusted provider, you have the privilege to
+                                    reset your local password at any time without providing your current one.
+                                </div>
+
+                                {% else %}
+
                                 <input type="hidden" name="action" value="password">
                                 <div class="mb-3">
                                     <label class="form-label text-muted small fw-bold">Current Password</label>
                                     <input type="password" class="form-control" name="current_password" required>
+                                    <a href="{{ url_for('auth.forgot_password') }}" class="text-danger small text-decoration-none hover-danger">Forgot?</a>
                                 </div>
+
+                                {% endif %}
+
                                 <div class="mb-3">
                                     <label class="form-label text-muted small fw-bold">New Password</label>
-                                    <input type="password" class="form-control" name="new_password" required minlength="6">
+                                    <input type="password" class="form-control" name="new_password" required
+                                        minlength="8">
+                                        <small class="text-muted mt-1 d-block"><i class="fas fa-info-circle me-1"></i>Must be at least 8 characters, with 1 uppercase, 1 lowercase, and 1 number.</small>
                                 </div>
                                 <div class="mb-4">
                                     <label class="form-label text-muted small fw-bold">Confirm New Password</label>
-                                    <input type="password" class="form-control" name="confirm_password" required minlength="6">
+                                    <input type="password" class="form-control" name="confirm_password" required
+                                        minlength="8">
                                 </div>
-                                <button type="submit" class="btn btn-primary-red w-100">Update Password</button>
+
+                                <button type="submit" class="btn btn-primary-red w-100">
+                                    Update Password
+                                </button>
                             </form>
                         </div>
 
                         <!-- 2FA Tab (Simplified for mobile) -->
-                        <div class="tab-pane fade {% if request.args.get('tab') == 'two-factor' %}show active{% endif %}" id="two-factor">
+                        <div class="tab-pane fade {% if request.args.get('tab') == 'two-factor' %}show active{% endif %}"
+                            id="two-factor">
                             <div class="text-center py-4">
                                 {% if user.otp_enabled %}
-                                    <i class="fas fa-shield-check fa-3x text-success mb-3"></i>
-                                    <h5 class="fw-bold">2FA is Active</h5>
-                                    <p class="text-muted small mb-4">Your account is secured with two-factor authentication.</p>
-                                    <button class="btn btn-outline-danger w-100" data-bs-toggle="modal" data-bs-target="#disableTwoFactorModal">Disable 2FA</button>
+                                <i class="fas fa-shield-check fa-3x text-success mb-3"></i>
+                                <h5 class="fw-bold">2FA is Active</h5>
+                                <p class="text-muted small mb-4">Your account is secured with two-factor authentication.
+                                </p>
+                                <button class="btn btn-outline-danger w-100" data-bs-toggle="modal"
+                                    data-bs-target="#disableTwoFactorModal">Disable 2FA</button>
                                 {% else %}
-                                    <i class="fas fa-shield-alt fa-3x text-muted mb-3 opacity-50"></i>
-                                    <h5 class="fw-bold">Enhance Security</h5>
-                                    <p class="text-muted small mb-4">Require a verification code alongside your password.</p>
-                                    <a href="{{ url_for('otp.setup_otp') }}" class="btn btn-primary-red w-100">Enable 2FA</a>
+                                <i class="fas fa-shield-alt fa-3x text-muted mb-3 opacity-50"></i>
+                                <h5 class="fw-bold">Enhance Security</h5>
+                                <p class="text-muted small mb-4">Require a verification code alongside your password.
+                                </p>
+                                <a href="{{ url_for('otp.setup_otp') }}" class="btn btn-primary-red w-100">Enable
+                                    2FA</a>
                                 {% endif %}
                             </div>
                         </div>
 
                         <!-- Donor Tab -->
                         {% if donor %}
-                        <div class="tab-pane fade {% if request.args.get('tab') == 'donor' %}show active{% endif %}" id="donor">
+                        <div class="tab-pane fade {% if request.args.get('tab') == 'donor' %}show active{% endif %}"
+                            id="donor">
                             <form method="POST">
                                 <input type="hidden" name="action" value="donor">
                                 <div class="mb-3">
                                     <label class="form-label text-muted small fw-bold">Blood Group</label>
                                     <select class="form-select" name="blood_group">
                                         {% for bg in blood_groups %}
-                                        <option value="{{ bg }}" {% if donor.blood_group == bg %}selected{% endif %}>{{ bg }}</option>
+                                        <option value="{{ bg }}" {% if donor.blood_group==bg %}selected{% endif %}>{{ bg
+                                            }}</option>
                                         {% endfor %}
                                     </select>
                                 </div>
                                 <div class="mb-4">
                                     <label class="form-label text-muted small fw-bold">City</label>
-                                    <input type="text" class="form-control" name="city" value="{{ donor.city }}" required>
+                                    <input type="text" class="form-control" name="city" value="{{ donor.city }}"
+                                        required>
                                 </div>
                                 <div class="form-check form-switch mb-4">
-                                    <input class="form-check-input" type="checkbox" name="availability" value="1" id="availabilitySwitch" {% if donor.availability %}checked{% endif %}>
-                                    <label class="form-check-label ms-2" for="availabilitySwitch">I am available to donate</label>
+                                    <input class="form-check-input" type="checkbox" name="availability" value="1"
+                                        id="availabilitySwitch" {% if donor.availability %}checked{% endif %}>
+                                    <label class="form-check-label ms-2" for="availabilitySwitch">I am available to
+                                        donate</label>
                                 </div>
                                 <button type="submit" class="btn btn-primary-red w-100">Save Donor Info</button>
                             </form>
@@ -154,4 +344,20 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Flatpickr JS -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        flatpickr("#dob", {
+            dateFormat: "Y-m-d",        // The format sent to your Python backend
+            altInput: true,             // Creates a beautifully formatted secondary input for the user
+            altFormat: "F j, Y",        // Displays as "October 10, 2003"
+            maxDate: "today",           // Disables future dates
+            disableMobile: "true"       // Optional: forces the nice UI on mobile devices too
+        });
+    });
+</script>
 {% endblock %}

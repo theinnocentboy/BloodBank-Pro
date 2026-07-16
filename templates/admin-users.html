@@ -1,76 +1,108 @@
-{% extends "base.html" %}
+{% extends "admin-base.html" %}
 
 {% block title %}Manage Users - Admin Panel{% endblock %}
 
-{% block content %}
-<div class="container-lg-fluid py-4">
-    <div class="row">
-        <!-- Sidebar -->
-        <div class="col-lg-2 ps-0">
-            <div class="admin-sidebar">
-                <ul class="list-unstyled">
-                    <li><a class="nav-link" href="/admin/dashboard"><i class="fas fa-chart-line"></i> Dashboard</a></li>
-                    <li><a class="nav-link active" href="/admin/users"><i class="fas fa-users"></i> Users</a></li>
-                    <li><a class="nav-link" href="/admin/donors"><i class="fas fa-heart-pulse"></i> Donors</a></li>
-                    <li><a class="nav-link" href="/admin/requests"><i class="fas fa-file-alt"></i> Requests</a></li>
-                    <li><a class="nav-link" href="/admin/inventory"><i class="fas fa-warehouse"></i> Inventory</a></li>
-                </ul>
-            </div>
-        </div>
+{% block admin_content %}
+<div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 mb-4">
+    <div>
+        <h2 class="fw-bold mb-1"><i class="fas fa-users text-danger me-2"></i> Manage Users</h2>
+        <p class="text-muted small mb-0">View and manage registered users and their roles.</p>
+    </div>
+    <span class="badge bg-danger text-white px-4 py-2 rounded-pill fs-6 shadow-sm">
+        {{ users|length }} Total Users
+    </span>
+</div>
 
-        <!-- Main Content -->
-        <div class="col-lg-10">
-            <div class="admin-content">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2><i class="fas fa-users"></i> Manage Users</h2>
-                    <span class="badge bg-red" style="background-color: #DC143C; font-size: 1rem;">{{ users|length }} Users</span>
-                </div>
+<div class="card border-0 shadow-sm overflow-hidden">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 text-nowrap">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-4">ID</th>
+                        <th>Username</th>
+                        <th>Full Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Gender</th>
+                        <th>Date of Birth</th>
+                        <th>Role</th>
+                        <th>Joined</th>
+                        <th>Status</th>
+                        <th class="pe-4 text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if users %}
+                    {% for user in users %}
+                    <tr>
+                        <td class="ps-4 text-muted small fw-bold">#{{ loop.index }}</td>
+                        <td class="fw-medium">{{ user.username }}</td>
+                        <td>{{ user.full_name or 'N/A' }}</td>
+                        <td class="text-muted small">{{ user.email or 'N/A' }}</td>
+                        <td class="text-muted small">{{ user.phone or 'N/A' }}</td>
 
-                <div class="card">
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Username</th>
-                                        <th>Full Name</th>
-                                        <th>Email</th>
-                                        <th>Phone</th>
-                                        <th>Role</th>
-                                        <th>Joined</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% if users %}
-                                        {% for user in users %}
-                                            <tr>
-                                                <td><strong>#{{ user.id }}</strong></td>
-                                                <td>{{ user.username }}</td>
-                                                <td>{{ user.full_name or 'N/A' }}</td>
-                                                <td>{{ user.email or 'N/A' }}</td>
-                                                <td>{{ user.phone or 'N/A' }}</td>
-                                                <td>
-                                                    <span class="badge" style="background-color: {% if user.role == 'admin' %}#8B0000{% elif user.role == 'donor' %}#17A2B8{% else %}#6c757d{% endif %};">
-                                                        {{ user.role|title }}
-                                                    </span>
-                                                </td>
-                                                <td>{{ user.created_at.strftime('%b %d, %Y') if user.created_at else 'N/A' }}</td>
-                                                <td><span class="badge bg-success">Active</span></td>
-                                            </tr>
-                                        {% endfor %}
-                                    {% else %}
-                                        <tr>
-                                            <td colspan="8" class="text-center text-muted">No users found</td>
-                                        </tr>
-                                    {% endif %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
+                        <td>
+                            {% if user.gender %}
+                            <span class="badge bg-secondary-subtle text-secondary border">{{ user.gender }}</span>
+                            {% else %}
+                            <span class="text-muted small">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if user.dob %}
+                            {{ user.dob.strftime('%d %b, %Y') }}
+                            {% else %}
+                            <span class="text-muted small">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span
+                                class="badge {% if user.role == 'admin' %}bg-danger-subtle text-danger border border-danger-subtle{% elif user.role == 'donor' %}bg-info-subtle text-info border border-info-subtle{% else %}bg-secondary-subtle text-secondary border border-secondary-subtle{% endif %}">
+                                {{ user.role|title }}
+                            </span>
+                        </td>
+                        <td class="text-muted small">{{ user.created_at.strftime('%b %d, %Y') if user.created_at else
+                            'N/A' }}</td>
+                        <td>
+                            {% if user.is_active %}
+                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1"><i
+                                    class="fas fa-check-circle me-1"></i> Active</span>
+                            {% else %}
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1"><i
+                                    class="fas fa-ban me-1"></i> Banned</span>
+                            {% endif %}
+                        </td>
+                        <td class="pe-4 text-end">
+                            <!-- Prevent admins from banning themselves -->
+                            {% if user.id != session['user_id'] %}
+                            <form action="{{ url_for('admin.toggle_user_status', user_id=user.id) }}" method="POST"
+                                class="d-inline"
+                                onsubmit="return confirm('{% if user.is_active %}Are you sure you want to ban {{ user.username }}? They will need to contact their local admin to restore access.{% else %}Are you sure you want to unban {{ user.username }}?{% endif %}');">
+
+                                {% if user.is_active %}
+                                <button type="submit" class="btn btn-sm btn-outline-warning" title="Ban User">
+                                    <i class="fas fa-ban me-1"></i> Ban
+                                </button>
+                                {% else %}
+                                <button type="submit" class="btn btn-sm btn-outline-success" title="Unban User">
+                                    <i class="fas fa-check me-1"></i> Unban
+                                </button>
+                                {% endif %}
+                            </form>
+                            {% else %}
+                            <span class="badge bg-light text-muted border">You</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="9" class="text-center text-muted py-5">No users found</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
         </div>
     </div>
 </div>

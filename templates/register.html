@@ -4,7 +4,8 @@
 
 {% block content %}
 <div class="container-lg py-5 d-flex align-items-center justify-content-center">
-    <div class="card border-0 shadow-lg overflow-hidden w-100" style="max-width: 900px; border-radius: var(--radius-lg);">
+    <div class="card border-0 shadow-lg overflow-hidden w-100"
+        style="max-width: 900px; border-radius: var(--radius-lg);">
         <div class="row g-0">
             <!-- Full width on Mobile, Right side on Desktop -->
             <div class="col-12 col-md-7 p-4 p-lg-5 order-2 order-md-1">
@@ -12,7 +13,7 @@
                     <h3 class="fw-bold">Create Account</h3>
                     <p class="text-muted small">Join our network to donate or request blood.</p>
                 </div>
-                
+
                 <form method="POST" action="/register">
                     <div class="row g-3 mb-3">
                         <div class="col-12 col-sm-6">
@@ -28,18 +29,23 @@
                     <div class="row g-3 mb-3">
                         <div class="col-12 col-sm-6">
                             <label class="form-label text-muted small fw-bold">Email Address *</label>
-                            <input type="email" class="form-control" name="email" required>
+                            <input type="email" class="form-control" name="email" placeholder="" required>
                         </div>
                         <div class="col-12 col-sm-6">
-                            <label class="form-label text-muted small fw-bold">Phone Number</label>
-                            <input type="tel" class="form-control" name="phone">
+                            <label class="form-label text-muted small fw-bold">Phone Number *</label>
+                            <div class="input-group">
+                                <span
+                                    class="input-group-text bg-secondary text-white fw-bold border-secondary">+91</span>
+                                <input type="tel" class="form-control" name="phone" placeholder="" required
+                                    pattern="[0-9]{10}" maxlength="10" title="Please enter a 10-digit mobile number">
+                            </div>
                         </div>
                     </div>
 
-                    <div class="row g-3 mb-4">
+                    <div class="row g-3 mb-2">
                         <div class="col-12 col-sm-6">
                             <label class="form-label text-muted small fw-bold">Password *</label>
-                            <input type="password" class="form-control" name="password" required>
+                            <input type="password" class="form-control" name="password" id="password" required>
                         </div>
                         <div class="col-12 col-sm-6">
                             <label class="form-label text-muted small fw-bold">Register As *</label>
@@ -49,6 +55,25 @@
                                 <option value="recipient">Recipient (Request Blood)</option>
                                 <option value="both">Both</option>
                             </select>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Password Checklist -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-12">
+                            <div class="bg-light p-3 rounded border shadow-sm">
+                                <p class="small text-muted mb-2 fw-bold">Password Requirements:</p>
+                                <div class="d-flex flex-wrap gap-3">
+                                    <span id="req-length" class="text-danger small"><i class="fas fa-times me-1"></i> 8+
+                                        characters</span>
+                                    <span id="req-upper" class="text-danger small"><i class="fas fa-times me-1"></i> 1
+                                        uppercase</span>
+                                    <span id="req-lower" class="text-danger small"><i class="fas fa-times me-1"></i> 1
+                                        lowercase</span>
+                                    <span id="req-num" class="text-danger small"><i class="fas fa-times me-1"></i> 1
+                                        number</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -62,21 +87,74 @@
                     <button type="submit" class="btn btn-primary-red w-100 btn-lg mb-3">
                         Create Account
                     </button>
-                    
+
                     <p class="text-center mb-0 text-muted small">
-                        Already have an account? 
+                        Already have an account?
                         <a href="/login" class="text-danger fw-bold text-decoration-none">Login here</a>
                     </p>
+                    <!-- Divider -->
+                    <div class="d-flex align-items-center my-4">
+                        <hr class="flex-grow-1">
+                        <span class="mx-3 text-muted small fw-bold">OR REGISTER WITH</span>
+                        <hr class="flex-grow-1">
+                    </div>
+
+                    <!-- Social Registration Buttons -->
+                    <div class="d-grid gap-2">
+                        <!-- Google Registration -->
+                        <a href="{{ url_for('auth.login_with_auth0', provider='google-oauth2') }}"
+                            class="btn btn-outline-danger fw-bold py-2 shadow-sm mb-2">
+                            <i class="fab fa-google me-2"></i> Continue with Google
+                        </a>
+
+                        <!-- Facebook Registration -->
+                        <a href="{{ url_for('auth.login_with_auth0', provider='facebook') }}"
+                            class="btn text-white fw-bold py-2 shadow-sm" style="background-color: #1877F2;">
+                            <i class="fab fa-facebook-f me-2"></i> Continue with Facebook
+                        </a>
+                    </div>
                 </form>
             </div>
-            
+
             <!-- Branding Panel -->
-            <div class="col-md-5 d-none d-md-flex flex-column justify-content-center align-items-center p-5 text-center text-white order-1 order-md-2" style="background: var(--brand-primary);">
+            <div class="col-md-5 d-none d-md-flex flex-column justify-content-center align-items-center p-5 text-center text-white order-1 order-md-2"
+                style="background: var(--brand-primary);">
                 <i class="fas fa-users fs-1 mb-4"></i>
                 <h3 class="fw-bold mb-3">Join the Network</h3>
-                <p class="small opacity-75">Connect with thousands of donors and hospitals in real-time. Your single registration can save multiple lives.</p>
+                <p class="small opacity-75">Connect with thousands of donors and hospitals in real-time. Your single
+                    registration can save multiple lives.</p>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const pwdInput = document.getElementById('password');
+
+        pwdInput.addEventListener('input', function () {
+            const val = pwdInput.value;
+
+            const checks = {
+                'req-length': val.length >= 8,
+                'req-upper': /[A-Z]/.test(val),
+                'req-lower': /[a-z]/.test(val),
+                'req-num': /\d/.test(val)
+            };
+
+            for (const [id, isValid] of Object.entries(checks)) {
+                const element = document.getElementById(id);
+                if (isValid) {
+                    element.classList.remove('text-danger');
+                    element.classList.add('text-success');
+                    element.innerHTML = element.innerHTML.replace('fa-times', 'fa-check');
+                } else {
+                    element.classList.remove('text-success');
+                    element.classList.add('text-danger');
+                    element.innerHTML = element.innerHTML.replace('fa-check', 'fa-times');
+                }
+            }
+        });
+    });
+</script>
 {% endblock %}

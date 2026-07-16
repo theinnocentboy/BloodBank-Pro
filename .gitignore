@@ -6,6 +6,16 @@ __pycache__/
 env/
 venv/
 .venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+pip-wheel-metadata/
+dist/
+build/
+site/
 
 # IDE
 .vscode/
@@ -16,18 +26,37 @@ venv/
 .DS_Store
 
 # Flask
-instance/
 .webassets-cache
+instance/*.db
+instance/*.sqlite
+instance/*.sqlite3
+instance/uploads/*
+instance/requisitions/*
+
+# Logs
+*.log
+logs/
 
 # Database
 *.db
 *.sqlite
 *.sqlite3
 
+# Machine learning artifacts
+bloodbank/ai_ml/models/
+*.pkl
+*.pickle
+*.joblib
+
 # Environment
 .env
 .env.local
 .env.*.local
+.python-version
+
+# Misc
+*.orig
+*.rej
 
 # Temporary
 tempCodeRunnerFile.py

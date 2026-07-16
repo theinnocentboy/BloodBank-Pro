@@ -19,6 +19,7 @@ The system automatically flags high-priority requests.
 from flask import current_app
 from datetime import datetime
 from bloodbank.models import BloodRequest
+from bloodbank.extensions import db
 from bloodbank.ai_ml.utils import (
     calculate_urgency_score,
     detect_emergency_keywords
@@ -36,15 +37,9 @@ class EmergencyPrioritizer:
     def prioritize_request(self, blood_request_id: int) -> dict:
         """
         Calculate and set priority score for a blood request.
-        
-        Args:
-            blood_request_id: ID of blood request
-        
-        Returns:
-            dict: Priority analysis
         """
         try:
-            blood_request = BloodRequest.query.get(blood_request_id)
+            blood_request = db.session.get(BloodRequest, blood_request_id)
             if not blood_request:
                 return {'success': False, 'message': 'Request not found'}
             
@@ -78,10 +73,9 @@ class EmergencyPrioritizer:
             
             # Update database
             blood_request.priority_score = final_score
-            blood_request.emergency_keywords = ','.join(keywords)
+            blood_request.emergency_keywords = ','.join(keywords) if keywords else None
             blood_request.is_emergency = is_emergency
             
-            from bloodbank.extensions import db
             db.session.commit()
             
             return {
@@ -102,38 +96,37 @@ class EmergencyPrioritizer:
     
     def get_priority_queue(self, limit: int = 10) -> dict:
         """
-        Get all pending blood requests ranked by priority.
-        
-        Args:
-            limit: Maximum requests to return
-        
-        Returns:
-            dict: Prioritized queue
+        Get all pending blood requests ranked by priority utilizing DB-level sorting.
         """
         try:
-            # Get all pending and active requests
+            # Optimized: Offload sorting and limiting entirely to the database
             pending_requests = BloodRequest.query.filter(
                 BloodRequest.status.in_(['pending', 'in_progress'])
-            ).all()
+            ).order_by(
+                db.func.coalesce(BloodRequest.priority_score, 0).desc(),
+                BloodRequest.created_at.asc()
+            ).limit(limit).all()
             
-            # Sort by priority score (descending) and age
-            pending_requests.sort(
-                key=lambda x: (x.priority_score or 0, x.created_at),
-                reverse=True
-            )
+            # For total count (still fast as it's just a COUNT() query, not loading objects)
+            total_pending = BloodRequest.query.filter(
+                BloodRequest.status.in_(['pending', 'in_progress'])
+            ).count()
             
             # Format queue
             priority_queue = []
             critical_count = 0
             high_count = 0
             
-            for ranking, request in enumerate(pending_requests[:limit], 1):
+            for ranking, request in enumerate(pending_requests, 1):
                 priority_level = self._get_priority_level(request.priority_score or 0)
                 
                 if priority_level == 'critical':
                     critical_count += 1
                 elif priority_level == 'high':
                     high_count += 1
+                
+                # Fix: Properly handle empty keyword strings
+                keywords_list = request.emergency_keywords.split(',') if request.emergency_keywords else []
                 
                 priority_queue.append({
                     'ranking': ranking,
@@ -144,8 +137,8 @@ class EmergencyPrioritizer:
                     'priority_level': priority_level,
                     'is_emergency': request.is_emergency,
                     'age_hours': round((datetime.utcnow() - request.created_at).total_seconds() / 3600, 1),
-                    'reason': request.reason[:100],  # First 100 chars
-                    'keywords': (request.emergency_keywords or '').split(','),
+                    'reason': request.reason[:100],
+                    'keywords': keywords_list,
                     'status': request.status,
                     'urgency': request.urgency,
                     'requested_by': request.user.full_name
@@ -153,7 +146,7 @@ class EmergencyPrioritizer:
             
             return {
                 'success': True,
-                'total_pending': len(pending_requests),
+                'total_pending': total_pending,
                 'critical_requests': critical_count,
                 'high_priority_requests': high_count,
                 'queue': priority_queue,
@@ -167,29 +160,31 @@ class EmergencyPrioritizer:
     def get_critical_alerts(self) -> dict:
         """
         Get all critical/emergency requests requiring immediate attention.
-        
-        Returns:
-            dict: Critical requests with action items
         """
         try:
             critical_requests = BloodRequest.query.filter(
                 BloodRequest.is_emergency == True,
                 BloodRequest.status.in_(['pending', 'in_progress'])
-            ).order_by(BloodRequest.priority_score.desc()).all()
+            ).order_by(
+                BloodRequest.priority_score.desc()
+            ).limit(5).all()  # Added limit(5) to DB query instead of list slicing
             
             alerts = []
-            for request in critical_requests[:5]:  # Top 5 critical
+            for request in critical_requests:
                 age_minutes = round((datetime.utcnow() - request.created_at).total_seconds() / 60, 0)
+                
+                # Fix: Properly handle empty keyword strings
+                keywords_list = request.emergency_keywords.split(',') if request.emergency_keywords else []
                 
                 alerts.append({
                     'request_id': request.id,
-                    'alert_level': 'CRITICAL' if request.priority_score >= 80 else 'HIGH',
+                    'alert_level': 'CRITICAL' if (request.priority_score or 0) >= 80 else 'HIGH',
                     'blood_group': request.blood_group,
                     'quantity_units': request.quantity,
                     'age_minutes': int(age_minutes),
                     'requester': request.user.full_name,
                     'reason': request.reason,
-                    'keywords': (request.emergency_keywords or '').split(','),
+                    'keywords': keywords_list,
                     'score': round(request.priority_score or 0, 2),
                     'recommended_action': self._get_action_recommendation(request),
                     'contact': request.user.phone or 'No phone on file'

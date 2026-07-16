@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Global Command Center{% endblock %}</title>
+    <!-- Bootstrap & FontAwesome -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .sa-navbar {
+            background-color: #1a1d20;
+            border-bottom: 3px solid #dc3545;
+        }
+
+        .sa-brand {
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Restricted Super Admin Navigation -->
+    <!-- Restricted Super Admin Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark sa-navbar shadow-sm">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand fw-bold text-white sa-brand" href="{{ url_for('superadmin.global_dashboard') }}">
+                <i class="fas fa-shield-alt text-danger me-2"></i>GLOBAL COMMAND
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#saNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="saNav">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'superadmin.global_dashboard' %}active text-danger fw-bold{% endif %}"
+                            href="{{ url_for('superadmin.global_dashboard') }}">
+                            <i class="fas fa-chart-line me-1"></i> Metrics
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'superadmin.manage_staff' %}active text-danger fw-bold{% endif %}"
+                            href="{{ url_for('superadmin.manage_staff') }}">
+                            <i class="fas fa-users-cog me-1"></i> Manage Admins
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'superadmin.all_accounts' %}active text-danger fw-bold{% endif %}"
+                            href="{{ url_for('superadmin.all_accounts') }}">
+                            <i class="fas fa-globe me-1"></i> All Accounts
+                        </a>
+                    </li>
+                </ul>
+                <div class="d-flex align-items-center text-white">
+                    <span class="me-4 text-secondary small">
+                        <i class="fas fa-circle text-success me-1" style="font-size: 8px;"></i> System Secure
+                    </span>
+                    <span class="me-3 fw-medium"><i class="fas fa-user-shield me-1"></i> {{ session.username }}</span>
+                    <!-- UPDATED LOGOUT ROUTE -->
+                    <a href="{{ url_for('superadmin.logout') }}" class="btn btn-sm btn-outline-light rounded-pill px-3">
+                        <i class="fas fa-sign-out-alt me-1"></i> Logout
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <!-- Global Alert System -->
+    <div class="container-fluid px-4 mt-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm border-0">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Main Content Injection -->
+    {% block content %}{% endblock %}
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

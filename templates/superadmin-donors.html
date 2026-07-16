@@ -1,0 +1,45 @@
+{% extends "superadmin-base.html" %}
+
+{% block title %}Global Donors - Command Center{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 px-3 px-lg-4">
+    <div class="row">
+        <div class="col-12 col-lg-10 offset-lg-1">
+            <h2 class="fw-bold mb-1"><i class="fas fa-hand-holding-medical text-danger me-2"></i>Registered Donors</h2>
+            <p class="text-muted small mb-4">System-wide directory of all medical donors.</p>
+
+            <div class="card border-0 shadow-sm overflow-hidden">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-dark text-white">
+                                <tr>
+                                    <th class="ps-4">Donor Name</th>
+                                    <th>Blood Group</th>
+                                    <th>Contact</th>
+                                    <th>Total Donations</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for donor in donors %}
+                                <tr>
+                                    <td class="ps-4 fw-medium">{{ donor.user.full_name }}</td>
+                                    <td><span class="badge bg-danger">{{ donor.blood_group }}</span></td>
+                                    <td class="text-muted">{{ donor.user.email }}</td>
+                                    <td>{{ donor.donations|length if donor.donations else 0 }}</td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-4 text-muted">No donors registered in the system yet.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

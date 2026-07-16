@@ -74,7 +74,18 @@
                             <span class="badge bg-success-subtle text-success px-2 py-1 rounded-pill">
                                 <i class="fas fa-circle ms-1" style="font-size: 0.5rem; vertical-align: middle;"></i> Available
                             </span>
-                            <a href="#" class="btn btn-sm btn-outline-secondary">Contact</a>
+                            <!-- Smart Contact Routing -->
+{% if donor.user.phone %}
+    <!-- Opens phone dialer directly -->
+    <a href="tel:{{ donor.user.phone }}" class="btn btn-secondary btn-sm shadow-sm hover-lift">
+        <i class="fas fa-phone-alt me-1"></i> Contact
+    </a>
+{% else %}
+    <!-- Fallback to email if no phone is provided -->
+    <a href="mailto:{{ donor.user.email }}?subject=Urgent Blood Request via BloodBank" class="btn btn-secondary btn-sm shadow-sm hover-lift">
+        <i class="fas fa-envelope me-1"></i> Contact
+    </a>
+{% endif %}
                         </div>
                     </div>
                 </div>

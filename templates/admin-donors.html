@@ -1,85 +1,67 @@
-{% extends "base.html" %}
-
+{% extends "admin-base.html" %}
 {% block title %}Manage Donors - Admin Panel{% endblock %}
 
-{% block content %}
-<div class="container-lg-fluid py-4">
-    <div class="row">
-        <!-- Sidebar -->
-        <div class="col-lg-2 ps-0">
-            <div class="admin-sidebar">
-                <ul class="list-unstyled">
-                    <li><a class="nav-link" href="/admin/dashboard"><i class="fas fa-chart-line"></i> Dashboard</a></li>
-                    <li><a class="nav-link" href="/admin/users"><i class="fas fa-users"></i> Users</a></li>
-                    <li><a class="nav-link active" href="/admin/donors"><i class="fas fa-heart-pulse"></i> Donors</a></li>
-                    <li><a class="nav-link" href="/admin/requests"><i class="fas fa-file-alt"></i> Requests</a></li>
-                    <li><a class="nav-link" href="/admin/inventory"><i class="fas fa-warehouse"></i> Inventory</a></li>
-                </ul>
-            </div>
-        </div>
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1"><i class="fas fa-heart-pulse text-danger me-2"></i> Manage Donors</h2>
+        <p class="text-muted small">View and manage registered blood donors.</p>
+    </div>
+    <span class="badge bg-danger text-white px-4 py-2 rounded-pill fs-6 shadow-sm">
+        {{ donors|length }} Total Donors
+    </span>
+</div>
 
-        <!-- Main Content -->
-        <div class="col-lg-10">
-            <div class="admin-content">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2><i class="fas fa-heart-pulse"></i> Manage Donors</h2>
-                    <span class="badge bg-red" style="background-color: #DC143C; font-size: 1rem;">{{ donors|length }} Donors</span>
-                </div>
-
-                <div class="card">
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Name</th>
-                                        <th>Blood Group</th>
-                                        <th>City</th>
-                                        <th>Contact</th>
-                                        <th>Units Donated</th>
-                                        <th>Availability</th>
-                                        <th>Joined</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% if donors %}
-                                        {% for donor in donors %}
-                                            <tr>
-                                                <td><strong>#{{ donor.id }}</strong></td>
-                                                <td>{{ donor.user.full_name }}</td>
-                                                <td>
-                                                    <span class="blood-group-badge">{{ donor.blood_group }}</span>
-                                                </td>
-                                                <td>{{ donor.city }}</td>
-                                                <td>
-                                                    <small>
-                                                        <i class="fas fa-phone"></i> {{ donor.user.phone or 'N/A' }}<br>
-                                                        <i class="fas fa-envelope"></i> {{ donor.user.email or 'N/A' }}
-                                                    </small>
-                                                </td>
-                                                <td><strong>{{ donor.units_donated }}</strong></td>
-                                                <td>
-                                                    {% if donor.availability %}
-                                                        <span class="badge bg-success"><i class="fas fa-check"></i> Yes</span>
-                                                    {% else %}
-                                                        <span class="badge bg-secondary"><i class="fas fa-times"></i> No</span>
-                                                    {% endif %}
-                                                </td>
-                                                <td>{{ donor.created_at.strftime('%b %d, %Y') if donor.created_at else 'N/A' }}</td>
-                                            </tr>
-                                        {% endfor %}
+<div class="card border-0 shadow-sm overflow-hidden">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 text-nowrap">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-4">ID</th>
+                        <th>Name</th>
+                        <th>Blood Group</th>
+                        <th>City</th>
+                        <th>Contact</th>
+                        <th>Units Donated</th>
+                        <th>Availability</th>
+                        <th class="pe-4 text-end">Joined</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if donors %}
+                        {% for donor in donors %}
+                            <tr>
+                                <td class="ps-4 text-muted small fw-bold">#{{ donor.id }}</td>
+                                <td class="fw-medium">{{ donor.user.full_name }}</td>
+                                <td>
+                                    <span class="blood-group-badge border-0" style="width: 32px; height: 32px; font-size: 0.85rem;">{{ donor.blood_group }}</span>
+                                </td>
+                                <td>{{ donor.city }}</td>
+                                <td>
+                                    <small class="text-muted">
+                                        <i class="fas fa-phone me-1"></i> {{ donor.user.phone or 'N/A' }}<br>
+                                        <i class="fas fa-envelope me-1"></i> {{ donor.user.email or 'N/A' }}
+                                    </small>
+                                </td>
+                                <td><strong>{{ donor.units_donated }}</strong></td>
+                                <td>
+                                    {% if donor.availability %}
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1"><i class="fas fa-check me-1"></i> Available</span>
                                     {% else %}
-                                        <tr>
-                                            <td colspan="8" class="text-center text-muted">No donors found</td>
-                                        </tr>
+                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1"><i class="fas fa-times me-1"></i> Unavailable</span>
                                     {% endif %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
+                                </td>
+                                <td class="pe-4 text-end text-muted small">{{ donor.created_at.strftime('%b %d, %Y') if donor.created_at else 'N/A' }}</td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-5">No donors found</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
         </div>
     </div>
 </div>

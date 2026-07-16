@@ -5,6 +5,7 @@ Uses Haversine formula to find nearest donors based on lat/long coordinates.
 Provides city-based fallback for donors without GPS data.
 
 Features:
+- Bounding Box SQL optimization (High Performance)
 - Accurate distance calculation
 - Nearest donor prioritization
 - Emergency sorting
@@ -24,21 +25,33 @@ class LocationMatcher:
     def __init__(self):
         self.default_search_radius_km = 50  # Default search radius
         self.emergency_search_radius_km = 100  # Emergency search radius
+        self.earth_radius_km = 6371.0 # Standard Earth radius
     
-    def find_nearest_donors(self, blood_request_id: int, limit: int = 5) -> dict:
+    def _get_bounding_box(self, lat: float, lon: float, radius_km: float) -> tuple:
         """
-        Find nearest available donors for a blood request.
+        Calculate min/max lat and long for a given radius.
+        Creates a fast SQL-queryable geographic square.
+        """
+        # Coordinate offsets in radians
+        dlat = radius_km / self.earth_radius_km
+        dlon = radius_km / (self.earth_radius_km * math.cos(math.radians(lat)))
         
-        Uses lat/long if available, otherwise falls back to city matching.
+        # Calculate min/max coordinates
+        min_lat = lat - math.degrees(dlat)
+        max_lat = lat + math.degrees(dlat)
+        min_lon = lon - math.degrees(dlon)
+        max_lon = lon + math.degrees(dlon)
         
-        Args:
-            blood_request_id: ID of blood request
-            limit: Maximum donors to return
-        
-        Returns:
-            dict with nearest donors sorted by distance
+        return min_lat, max_lat, min_lon, max_lon
+
+    def find_nearest_donors(self, blood_request_id: int, limit: int = 5, radius_km: float = None) -> dict:
+        """
+        Find nearest available donors for a blood request within a specific radius.
         """
         try:
+            # Set dynamic search radius
+            search_radius = radius_km if radius_km else self.default_search_radius_km
+            
             # Get blood request
             blood_request = BloodRequest.query.get(blood_request_id)
             if not blood_request:
@@ -47,42 +60,53 @@ class LocationMatcher:
             # Get requester location
             requester = blood_request.user
             if not requester.donor_profile or not requester.donor_profile.latitude:
-                # Fallback to city-based search
+                # Fallback to city-based search if no GPS data
                 return self._city_based_search(blood_request, limit)
             
             requester_lat = requester.donor_profile.latitude
             requester_lon = requester.donor_profile.longitude
             
-            # Get all available donors with matching blood group
+            # 1. Calculate Bounding Box to prevent memory overload
+            min_lat, max_lat, min_lon, max_lon = self._get_bounding_box(
+                requester_lat, requester_lon, search_radius
+            )
+            
+            # 2. Optimized SQL Query: Only fetch donors inside the geographical square
             donors = Donor.query.filter(
                 and_(
                     Donor.blood_group == blood_request.blood_group,
-                    Donor.availability == True
+                    Donor.availability == True,
+                    Donor.latitude.isnot(None),
+                    Donor.longitude.isnot(None),
+                    Donor.latitude.between(min_lat, max_lat),
+                    Donor.longitude.between(min_lon, max_lon)
                 )
             ).all()
             
             if not donors:
                 return {
                     'success': True,
-                    'message': 'No donors available',
+                    'message': f'No donors available within {search_radius}km',
                     'donors': []
                 }
             
-            # Calculate distances
+            # 3. Calculate exact distances and filter out corners of the bounding box
             donors_with_distance = []
             for donor in donors:
-                if donor.latitude and donor.longitude:
-                    distance = haversine_distance(
-                        requester_lat, requester_lon,
-                        donor.latitude, donor.longitude
-                    )
+                distance = haversine_distance(
+                    requester_lat, requester_lon,
+                    donor.latitude, donor.longitude
+                )
+                
+                # Strict radius enforcement (Bounding box is a square, radius is a circle)
+                if distance <= search_radius:
                     donors_with_distance.append({
                         'donor': donor,
                         'distance_km': distance,
                         'has_gps': True
                     })
             
-            # Sort by distance
+            # Sort by exact distance
             donors_with_distance.sort(key=lambda x: x['distance_km'])
             
             # Format response
@@ -92,8 +116,9 @@ class LocationMatcher:
             
             return {
                 'success': True,
-                'message': 'Nearest donors found',
+                'message': f'Nearest donors found within {search_radius}km',
                 'search_type': 'geolocation',
+                'search_radius_km': search_radius,
                 'requester_location': {
                     'latitude': requester_lat,
                     'longitude': requester_lon
@@ -108,30 +133,24 @@ class LocationMatcher:
     
     def find_emergency_donors(self, blood_request_id: int) -> dict:
         """
-        Find nearest donors for emergency requests.
-        
-        Uses expanded search radius and stricter time limits.
-        
-        Args:
-            blood_request_id: ID of blood request
-        
-        Returns:
-            dict with emergency-priority donors
+        Find nearest donors for emergency requests using expanded search radius.
         """
-        result = self.find_nearest_donors(blood_request_id, limit=3)
+        # Fix: Now successfully passing the expanded 100km radius to the core function
+        result = self.find_nearest_donors(
+            blood_request_id, 
+            limit=3, 
+            radius_km=self.emergency_search_radius_km
+        )
         
         if result['success']:
             result['message'] = 'Emergency - Finding nearest donors'
             result['is_emergency'] = True
-            result['search_radius_km'] = self.emergency_search_radius_km
         
         return result
     
     def _city_based_search(self, blood_request: BloodRequest, limit: int) -> dict:
         """
         Fallback search using city-based matching.
-        
-        When GPS data unavailable, match donors in same city.
         """
         try:
             requester_city = blood_request.user.donor_profile.city if blood_request.user.donor_profile else None

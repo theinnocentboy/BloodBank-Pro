@@ -45,3 +45,8 @@ class Config:
     UPLOAD_FOLDER = os.path.join(BASE_DIR, 'instance', 'uploads', 'requisitions')
     MAX_CONTENT_LENGTH = 5 * 1024 * 1024  # 5MB max file size
     ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg'}
+
+    # Add this under your other configurations in config.py
+    TWILIO_ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID", "")
+    TWILIO_AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN", "")
+    TWILIO_PHONE_NUMBER = os.environ.get("TWILIO_PHONE_NUMBER", "")

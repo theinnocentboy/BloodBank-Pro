@@ -8,6 +8,7 @@ Features:
 - Identify shortage risks
 - Generate time-series forecasts
 - Provide insights for inventory management
+- Utilizes Cyclical Time Encoding (Sine/Cosine) for enhanced accuracy
 
 Uses:
 - scikit-learn for ML
@@ -132,17 +133,22 @@ class DemandPredictor:
             for day in range(1, days_ahead + 1):
                 pred_date = current_date + timedelta(days=day)
                 
-                # Create feature vector
-                day_of_week = pred_date.weekday()
-                day_of_month = pred_date.day
-                month = pred_date.month
+                # Apply identical cyclical encoding for predictions
+                dow_sin = np.sin(2 * np.pi * pred_date.weekday() / 7.0)
+                dow_cos = np.cos(2 * np.pi * pred_date.weekday() / 7.0)
                 
-                X_pred = np.array([[day_of_week, day_of_month, month]])
+                dom_sin = np.sin(2 * np.pi * pred_date.day / 31.0)
+                dom_cos = np.cos(2 * np.pi * pred_date.day / 31.0)
+                
+                month_sin = np.sin(2 * np.pi * pred_date.month / 12.0)
+                month_cos = np.cos(2 * np.pi * pred_date.month / 12.0)
+                
+                X_pred = np.array([[dow_sin, dow_cos, dom_sin, dom_cos, month_sin, month_cos]])
                 X_pred_scaled = scaler.transform(X_pred)
                 
                 # Predict
                 demand = model.predict(X_pred_scaled)[0]
-                demand = max(0, int(demand))  # Ensure non-negative
+                demand = max(0, int(round(demand)))  # Ensure non-negative and rounded
                 
                 predictions.append({
                     'date': pred_date.isoformat(),
@@ -204,7 +210,7 @@ class DemandPredictor:
         }
     
     def _prepare_training_data(self, requests: list, days_history: int):
-        """Prepare training data from blood requests."""
+        """Prepare training data from blood requests using cyclical encoding."""
         try:
             dates = [r.created_at.date() for r in requests]
             daily_demand = pd.Series(dates).value_counts().sort_index()
@@ -217,11 +223,19 @@ class DemandPredictor:
             y = []
             
             for date, count in daily_demand.items():
-                X.append([
-                    date.weekday(),      # 0-6 (Monday-Sunday)
-                    date.day,            # 1-31
-                    date.month           # 1-12
-                ])
+                # Cyclical encoding for day of week (0-6)
+                dow_sin = np.sin(2 * np.pi * date.weekday() / 7.0)
+                dow_cos = np.cos(2 * np.pi * date.weekday() / 7.0)
+                
+                # Cyclical encoding for day of month (1-31)
+                dom_sin = np.sin(2 * np.pi * date.day / 31.0)
+                dom_cos = np.cos(2 * np.pi * date.day / 31.0)
+                
+                # Cyclical encoding for month (1-12)
+                month_sin = np.sin(2 * np.pi * date.month / 12.0)
+                month_cos = np.cos(2 * np.pi * date.month / 12.0)
+                
+                X.append([dow_sin, dow_cos, dom_sin, dom_cos, month_sin, month_cos])
                 y.append(count)
             
             return np.array(X), np.array(y)

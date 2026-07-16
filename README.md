@@ -1,57 +1,46 @@
-# BloodBank — Blood Management System
+# BloodBank Pro
 
-A Flask web app for donor registration, blood requests, inventory tracking, and admin management.
+BloodBank Pro is a Flask-based blood management system for donor registration, blood requests, inventory tracking, and OTP-protected user access.
 
 ## Features
 
-- User registration and login with hashed passwords
-- Donor search and registration
-- Blood requests with urgency levels
-- Admin dashboard with charts, user/donor/request management
-- Inventory tracking (deducts stock when requests are approved)
+- Public user registration and login
+- Dedicated admin and superadmin areas
+- OTP-based 2FA with authenticator app support and backup codes
+- Blood donor browsing, booking, and request workflows
+- AI/ML helpers for chatbot, recommendation, and demand prediction
 
-## Quick start
+## Quick Start
 
 ```bash
-cd blood
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
 python run.py
 ```
 
-Open http://127.0.0.1:5000
-
-### Demo accounts
-
-| Role  | Username | Password  |
-|-------|----------|-----------|
-| Admin | admin    | admin     |
-| User  | user1    | password  |
-
-## Project structure
-
-```
-blood/
-├── bloodbank/          # Application package
-│   ├── models.py       # Database models
-│   ├── routes/         # Blueprints (auth, user, donor, admin)
-│   ├── seed.py         # Default admin, demo user, inventory
-│   └── config.py
-├── templates/          # Jinja2 HTML templates
-├── static/             # CSS and JavaScript
-├── instance/           # SQLite database (auto-created)
-└── run.py              # Entry point
-```
+Then open http://127.0.0.1:5000 in your browser.
 
 ## Configuration
 
-Set environment variables (optional):
+Set environment variables as needed before starting the app:
 
-- `SECRET_KEY` — session signing key
-- `DATABASE_URL` — database URI (default: SQLite in `instance/blood.db`)
-- `FLASK_DEBUG` — set to `0` in production
+- `SECRET_KEY`: session signing key
+- `DATABASE_URL`: optional database URI override, defaults to SQLite under `instance/`
+- `FLASK_DEBUG`: set to `0` to run without debug mode
+- `SUPERADMIN_USER`, `SUPERADMIN_PASS`, `SUPERADMIN_EMAIL`: optional bootstrap credentials used by `run.py`
+- `AUTH0_DOMAIN`, `AUTH0_CLIENT_ID`, `AUTH0_CLIENT_SECRET`, `AUTH0_CALLBACK_URL`: required only when Auth0 login is enabled
 
-## Tech stack
+## Project Layout
 
-Flask 3, SQLAlchemy, Bootstrap 5, Chart.js
+- `run.py`: application entrypoint
+- `bloodbank/`: Flask app package, models, utilities, routes, and AI/ML helpers
+- `templates/`: Jinja templates for public, admin, and OTP flows
+- `static/`: CSS and JavaScript assets
+- `instance/`: local runtime files such as uploads, requisitions, and the SQLite database
+
+## Notes
+
+- `run.py` seeds or restores the superadmin account when the related environment variables are present.
+- OTP setup and verification are handled through the profile and login flows in the app.
+- The repository includes generated or local-only runtime files under `instance/`, which should remain untracked.

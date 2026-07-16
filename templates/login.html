@@ -24,12 +24,13 @@
                 
                 <form method="POST" action="{{ url_for('auth.login') }}">
                     <div class="mb-3">
-                        <label for="username" class="form-label text-muted small fw-bold">Username</label>
+                        <label for="username" class="form-label text-muted small fw-bold">Username/Email</label>
                         <input type="text" class="form-control form-control-lg fs-6" id="username" name="username" required>
                     </div>
                     <div class="mb-4">
                         <label for="password" class="form-label text-muted small fw-bold">Password</label>
                         <input type="password" class="form-control form-control-lg fs-6" id="password" name="password" required>
+                        <a href="{{ url_for('auth.forgot_password') }}" class="text-danger small text-decoration-none">Forgot Password?</a>
                     </div>
                     <button type="submit" class="btn btn-primary-red w-100 btn-lg mb-4">
                         Login to Dashboard

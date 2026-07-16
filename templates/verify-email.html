@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Verify Email - Blood Bank Management{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow border-0 rounded-4">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-envelope-open-text mb-3" style="font-size: 3.5rem; color: #0dcaf0;"></i>
+                        <h3 class="fw-bold">Verify Your Email</h3>
+                        <p class="text-muted">We sent a secure 6-digit code to <strong>{{ email }}</strong></p>
+                    </div>
+
+                    <form method="POST" action="{{ url_for('auth.verify_email_gate') }}">
+                        <div class="mb-4">
+                            <label for="otp_code" class="form-label fw-bold text-secondary">Enter Email Code</label>
+                            <input type="text" class="form-control form-control-lg text-center shadow-sm" id="otp_code" name="otp_code" maxlength="6" placeholder="000000" required inputmode="numeric" pattern="\d{6}">
+                        </div>
+                        <button type="submit" class="btn btn-info text-white w-100 btn-lg mb-4 rounded-pill fw-bold shadow-sm">
+                            <i class="fas fa-check-circle me-2"></i> Verify Email
+                        </button>
+                    </form>
+
+                    <div class="text-center mt-2">
+                        <p class="mb-0">
+                            <a href="{{ url_for('auth.login') }}" class="text-muted text-decoration-none small">
+                                <i class="fas fa-arrow-left me-1"></i> Return to Dashboard
+                            </a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resend Section with Cooldown Timer -->
+            <div class="alert alert-light border mt-4 shadow-sm rounded-4 text-center">
+                <p class="mb-2 text-muted small">Didn't receive the code? Check your spam folder.</p>
+                <form method="GET" action="{{ url_for('auth.resend_email_otp') }}">
+                    <button type="submit" id="resendBtn" class="btn btn-outline-info btn-sm rounded-pill px-4 fw-bold" disabled>
+                        <i class="fas fa-redo-alt me-1"></i> Resend Email <span id="timerText">(60s)</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    #otp_code { letter-spacing: 0.75rem; font-size: 2rem; font-weight: bold; font-family: 'Courier New', monospace; border: 2px solid #e9ecef; }
+    #otp_code:focus { border-color: #0dcaf0; box-shadow: 0 0 0 0.25rem rgba(13, 202, 240, 0.25); }
+    #otp_code::placeholder { letter-spacing: 0.75rem; color: #ced4da; }
+</style>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const resendBtn = document.getElementById("resendBtn");
+        const timerText = document.getElementById("timerText");
+        let timeLeft = 60; 
+
+        const countdown = setInterval(function() {
+            timeLeft--;
+            timerText.textContent = `(${timeLeft}s)`;
+            if (timeLeft <= 0) {
+                clearInterval(countdown);
+                resendBtn.removeAttribute("disabled");
+                timerText.textContent = "";
+            }
+        }, 1000);
+        document.getElementById("otp_code").focus();
+    });
+</script>
+{% endblock %}

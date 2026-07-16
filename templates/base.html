@@ -1,17 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}BloodBank — Intelligent Health Network{% endblock %}</title>
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
-    
+
     <!-- CSS Dependencies -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     {% block extra_css %}{% endblock %}
 </head>
+
 <body>
     <!-- Transparent Sticky Blurred Nav -->
     <nav class="navbar navbar-expand-lg">
@@ -24,42 +26,79 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto align-items-center">
-                    {% if session.get('user_id') %}
-                        {% if session.get('role') == 'admin' %}
-                            <li class="nav-item"><a class="nav-link" href="{{ url_for('admin.dashboard') }}">Dashboard</a></li>
-                            <li class="nav-item"><a class="nav-link" href="{{ url_for('admin.inventory') }}">Inventory</a></li>
-                        {% else %}
-                            <li class="nav-item"><a class="nav-link" href="{{ url_for('user.dashboard') }}">Dashboard</a></li>
-                            <li class="nav-item"><a class="nav-link" href="{{ url_for('donor.search_donors') }}">Find Donors</a></li>
-                        {% endif %}
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('main.chatbot') }}">AI Assistant</a></li>
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('user.profile') }}"><i class="far fa-user-circle fs-5"></i></a></li>
-                        <li class="nav-item ms-2">
-                            <a class="btn btn-outline-red py-2 px-3 border-0 text-danger" href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt"></i></a>
-                        </li>
+    {% if session.get('user_id') %}
+        
+        <!-- 1. MAIN APP NAVIGATION -->
+        {% if session.get('role') != 'admin' %}
+            <!-- Standard users get top-nav links. Admins use their sidebar instead. -->
+            <li class="nav-item"><a class="nav-link" href="{{ url_for('user.dashboard') }}">Dashboard</a></li>
+            <li class="nav-item"><a class="nav-link" href="{{ url_for('donor.search_donors') }}">Find Donors</a></li>
+        {% endif %}
+        
+        <!-- Global tools visible to everyone -->
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('main.chatbot') }}">AI Assistant</a></li>
+        
+        <!-- 2. ACCOUNT MANAGEMENT DROPDOWN -->
+        {% if global_user %}
+        <li class="nav-item dropdown ms-3">
+            <!-- Sleek Pill-shaped Dropdown Button -->
+            <a class="nav-link dropdown-toggle d-flex align-items-center gap-2 p-1 bg-light rounded-pill pe-3 shadow-sm border" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                
+                {% if global_user.profile_pic %}
+                    {% if global_user.profile_pic.startswith('http') %}
+                        <img src="{{ global_user.profile_pic }}" alt="Avatar" class="rounded-circle object-fit-cover" width="36" height="36" referrerpolicy="no-referrer">
                     {% else %}
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('donor.search_donors') }}">Find Donors</a></li>
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('main.chatbot') }}">AI Assistant</a></li>
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.login') }}">Login</a></li>
-                        <li class="nav-item ms-2">
-                            <a class="btn btn-primary-red" href="{{ url_for('auth.register') }}">Get Started</a>
-                        </li>
+                        <img src="{{ url_for('static', filename='uploads/profiles/' + global_user.profile_pic) }}" alt="Avatar" class="rounded-circle object-fit-cover" width="36" height="36">
                     {% endif %}
-                </ul>
+                {% else %}
+                    <div class="bg-secondary-subtle text-secondary rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; font-size: 1rem;">
+                        <i class="fas fa-user{% if session.get('role') == 'admin' %}-shield{% endif %}"></i>
+                    </div>
+                {% endif %}
+                
+                <span class="d-none d-md-inline fw-semibold text-dark small">
+                    {% if session.get('role') == 'admin' %}Admin {% endif %}{{ global_user.full_name.split(' ')[0] if global_user.full_name else global_user.username }}
+                </span>
+            </a>
+            
+            <!-- Cleaned Up Dropdown Menu -->
+            <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 mt-3 rounded-3" aria-labelledby="userDropdown">
+                {% if session.get('role') == 'admin' %}
+                    <li><a class="dropdown-item py-2" href="{{ url_for('admin.profile') }}"><i class="fas fa-user-shield me-2 text-primary"></i>Admin Profile</a></li>
+                {% else %}
+                    <li><a class="dropdown-item py-2" href="{{ url_for('user.profile') }}"><i class="fas fa-user-cog me-2 text-danger"></i>Profile Settings</a></li>
+                {% endif %}
+                <li><hr class="dropdown-divider mb-0"></li>
+                <li><a class="dropdown-item text-danger py-2 fw-bold" href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+            </ul>
+        </li>
+        {% endif %}
+
+    {% else %}
+        <!-- LOGGED OUT STATE NAVIGATION -->
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('donor.search_donors') }}">Find Donors</a></li>
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('main.chatbot') }}">AI Assistant</a></li>
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.login') }}">Login</a></li>
+        <li class="nav-item ms-2">
+            <a class="btn btn-primary-red px-4 rounded-pill shadow-sm" href="{{ url_for('auth.register') }}">Get Started</a>
+        </li>
+    {% endif %}
+</ul>
             </div>
         </div>
     </nav>
 
     <div class="container mt-4">
         {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category if category != 'danger' else 'danger' }} border-0 shadow-sm rounded-3 dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                {% endfor %}
-            {% endif %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category if category != 'danger' else 'danger' }} border-0 shadow-sm rounded-3 dismissible fade show"
+            role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
         {% endwith %}
     </div>
 
@@ -72,4 +111,5 @@
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
     {% block extra_js %}{% endblock %}
 </body>
+
 </html>

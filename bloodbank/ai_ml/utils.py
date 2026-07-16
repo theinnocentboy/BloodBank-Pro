@@ -5,19 +5,33 @@ Provides helper functions for:
 - Data validation
 - Scoring calculations
 - Format conversions
+- Medical blood compatibility mapping
 - Logging
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime
 import math
 
+
+# Universal Medical Compatibility Matrix
+# Maps Patient Blood Group -> List of Safe Donor Blood Groups
+COMPATIBILITY_MATRIX = {
+    'A+': ['A+', 'A-', 'O+', 'O-'],
+    'A-': ['A-', 'O-'],
+    'B+': ['B+', 'B-', 'O+', 'O-'],
+    'B-': ['B-', 'O-'],
+    'AB+': ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'],
+    'AB-': ['AB-', 'A-', 'B-', 'O-'],
+    'O+': ['O+', 'O-'],
+    'O-': ['O-']
+}
 
 def calculate_urgency_score(request_data: dict) -> float:
     """
     Calculate AI urgency score based on multiple factors.
     
     Factors:
-    - Request age (newer = higher urgency)
+    - Request age (older = escalating urgency)
     - Blood group rarity
     - Quantity requested
     - Explicit urgency level
@@ -27,14 +41,15 @@ def calculate_urgency_score(request_data: dict) -> float:
     """
     score = 0.0
     
-    # 1. Request age factor (0-30 points)
+    # 1. Request age factor (0-30 points) - FIXED: Escalates over time
     if 'created_at' in request_data:
         age_hours = (datetime.utcnow() - request_data['created_at']).total_seconds() / 3600
-        age_score = max(0, 30 - age_hours)  # Decreases over time
+        # Gains 4 points per hour waiting, maxing out at 30 points after ~7.5 hours
+        age_score = min(30, age_hours * 4.0)
         score += age_score
     
     # 2. Blood group rarity factor (0-25 points)
-    rare_groups = ['O-', 'B-', 'AB-', 'AB+']  # Rarer groups
+    rare_groups = ['O-', 'B-', 'AB-', 'AB+']
     if request_data.get('blood_group') in rare_groups:
         score += 25
     else:
@@ -42,7 +57,7 @@ def calculate_urgency_score(request_data: dict) -> float:
     
     # 3. Quantity factor (0-25 points)
     quantity = request_data.get('quantity', 1)
-    score += min(25, quantity * 5)  # More units = higher urgency
+    score += min(25, quantity * 5)  # Maxes out at 5 units
     
     # 4. Explicit urgency level (0-20 points)
     urgency_levels = {
@@ -54,16 +69,14 @@ def calculate_urgency_score(request_data: dict) -> float:
     explicit_urgency = request_data.get('urgency', 'normal').lower()
     score += urgency_levels.get(explicit_urgency, 5)
     
-    return min(100, score)  # Cap at 100
+    return min(100.0, score)
 
 
 def detect_emergency_keywords(text: str) -> list:
-    """
-    Detect emergency-related keywords in request reason.
-    
-    Returns:
-        list: Detected keywords
-    """
+    """Detect emergency-related keywords in request reason."""
+    if not text:
+        return []
+        
     emergency_keywords = [
         'emergency', 'urgent', 'critical', 'icu', 'surgery', 'accident',
         'trauma', 'bleeding', 'serious', 'life-threatening', 'immediately',
@@ -71,71 +84,48 @@ def detect_emergency_keywords(text: str) -> list:
     ]
     
     text_lower = text.lower()
-    detected = [kw for kw in emergency_keywords if kw in text_lower]
-    return detected
+    return [kw for kw in emergency_keywords if kw in text_lower]
 
 
 def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    """
-    Calculate distance between two geographic points using Haversine formula.
+    """Calculate distance between two geographic points using Haversine formula."""
+    R = 6371.0 # Earth's radius in km
     
-    Args:
-        lat1, lon1: First point coordinates
-        lat2, lon2: Second point coordinates
+    lat1_rad, lon1_rad = math.radians(lat1), math.radians(lon1)
+    lat2_rad, lon2_rad = math.radians(lat2), math.radians(lon2)
     
-    Returns:
-        float: Distance in kilometers
-    """
-    # Earth's radius in kilometers
-    R = 6371.0
-    
-    # Convert degrees to radians
-    lat1_rad = math.radians(lat1)
-    lon1_rad = math.radians(lon1)
-    lat2_rad = math.radians(lat2)
-    lon2_rad = math.radians(lon2)
-    
-    # Differences
     dlat = lat2_rad - lat1_rad
     dlon = lon2_rad - lon1_rad
     
-    # Haversine formula
-    a = math.sin(dlat / 2) ** 2 + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(dlon / 2) ** 2
+    a = math.sin(dlat / 2)**2 + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(dlon / 2)**2
     c = 2 * math.asin(math.sqrt(a))
-    distance = R * c
     
-    return distance
+    return R * c
 
 
 def calculate_donor_score(donor: dict, request: dict, distance_km: float = None) -> float:
     """
-    Calculate recommendation score for a donor based on multiple factors.
-    
-    Factors:
-    - Blood group match: 40 points
-    - Availability: 30 points
-    - Location proximity: 20 points
-    - Donation activity: 10 points
-    
-    Args:
-        donor: Donor data dict
-        request: Blood request data dict
-        distance_km: Distance in kilometers (optional)
-    
-    Returns:
-        float: Score between 0 and 100
+    Calculate recommendation score for a donor.
+    Includes Universal Compatibility Matrix.
     """
     score = 0.0
     
-    # 1. Blood group match (40 points)
-    if donor.get('blood_group') == request.get('blood_group'):
-        score += 40
+    # 1. Availability (Must pass first)
+    if not donor.get('availability'):
+        return 0.0  # Donor is unavailable, instant disqualification
     
-    # 2. Availability (30 points)
-    if donor.get('availability'):
-        score += 30
+    score += 30
+    
+    # 2. Medical Blood Compatibility (40 points)
+    patient_bg = request.get('blood_group')
+    donor_bg = donor.get('blood_group')
+    
+    if donor_bg == patient_bg:
+        score += 40  # Exact match is highly preferred
+    elif patient_bg in COMPATIBILITY_MATRIX and donor_bg in COMPATIBILITY_MATRIX[patient_bg]:
+        score += 30  # Safe universal cross-match (e.g., O- giving to A+)
     else:
-        return 0  # Not available donors get 0 score
+        return 0.0  # CRITICAL: Medically incompatible blood. Instant disqualification.
     
     # 3. Location proximity (20 points)
     if distance_km is not None:
@@ -149,29 +139,22 @@ def calculate_donor_score(donor: dict, request: dict, distance_km: float = None)
             score += 5
     else:
         # City-based fallback
-        if donor.get('city') == request.get('city'):
-            score += 20
-        else:
-            score += 5
+        score += 20 if donor.get('city') == request.get('city') else 5
     
-    # 4. Donation activity (10 points)
+    # 4. Donation activity (10 points) - FIXED: Better scaling
     units_donated = donor.get('units_donated', 0)
     donation_frequency = donor.get('donation_frequency', 0)
     
     if units_donated > 0 or donation_frequency > 0:
-        activity_score = min(10, units_donated / 10)  # More donations = higher score
+        # Gives 2 points per past donation, maxing out the 10 points at 5 donations
+        activity_score = min(10.0, units_donated * 2.0)
         score += activity_score
     
-    return min(100, score)
+    return min(100.0, score)
 
 
 def format_recommendation_response(donors: list, scores: list) -> list:
-    """
-    Format recommendation data for API response.
-    
-    Returns:
-        list: List of donor recommendations with scores and ranking
-    """
+    """Format recommendation data for API response."""
     recommendations = []
     
     for ranking, (donor, score) in enumerate(zip(donors, scores), 1):
@@ -191,23 +174,9 @@ def format_recommendation_response(donors: list, scores: list) -> list:
 
 
 def predict_fulfillment_time(matching_donors_count: int, blood_group: str) -> int:
-    """
-    Predict time to fulfill blood request in hours.
+    """Predict time to fulfill blood request in hours."""
+    base_time = 24
     
-    Uses simple heuristics:
-    - More matching donors = faster fulfillment
-    - Rare blood groups = slower fulfillment
-    
-    Args:
-        matching_donors_count: Number of available donors
-        blood_group: Requested blood group
-    
-    Returns:
-        int: Predicted hours to fulfill
-    """
-    base_time = 24  # Base: 24 hours
-    
-    # Reduce time based on donor availability
     if matching_donors_count >= 5:
         base_time = 4
     elif matching_donors_count >= 3:
@@ -215,23 +184,8 @@ def predict_fulfillment_time(matching_donors_count: int, blood_group: str) -> in
     elif matching_donors_count >= 1:
         base_time = 12
     
-    # Increase time for rare blood groups
     rare_groups = ['O-', 'B-', 'AB-', 'AB+']
     if blood_group in rare_groups:
         base_time += 12
-    
+        
     return base_time
-
-
-def log_recommendation(blood_request_id: int, donor_id: int, score: float, ranking: int):
-    """
-    Log recommendation for analytics (to be implemented with database logging).
-    
-    Args:
-        blood_request_id: ID of blood request
-        donor_id: ID of recommended donor
-        score: Recommendation score
-        ranking: Position in recommendations (1st, 2nd, etc.)
-    """
-    # This will be implemented using DonorRecommendation model
-    pass

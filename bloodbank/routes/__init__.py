@@ -6,6 +6,8 @@ from bloodbank.routes.user import user_bp
 from bloodbank.routes.otp import otp_bp
 from bloodbank.routes.ai_routes import ai_bp
 from bloodbank.routes.api import chatbot_bp  # <-- Import the new chatbot blueprint
+from bloodbank.routes.superadmin import superadmin_bp
+
 
 
 def register_blueprints(app):
@@ -17,3 +19,4 @@ def register_blueprints(app):
     app.register_blueprint(otp_bp)
     app.register_blueprint(ai_bp)  # Register existing AI/ML routes
     app.register_blueprint(chatbot_bp)  # <-- Register the chatbot routes
+    app.register_blueprint(superadmin_bp)
