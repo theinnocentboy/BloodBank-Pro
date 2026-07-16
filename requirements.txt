@@ -11,6 +11,9 @@ flask-cors>=4.0.0
 groq
 pytz
 twilio
+gunicorn>=22.0.0
+boto3>=1.34.0
+psycopg2-binary>=2.9.9
 
 
 # AI/ML Libraries (for demand prediction)

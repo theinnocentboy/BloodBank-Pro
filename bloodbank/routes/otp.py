@@ -2,15 +2,17 @@
 
 from flask import Blueprint, flash, redirect, render_template, request, session, url_for
 from datetime import datetime
-from bloodbank.otp_utils import generate_manual_otp_code, get_otp_expiry_time
+from bloodbank.email_utils import send_otp_email
 from bloodbank.decorators import login_required
 from bloodbank.extensions import db
 from bloodbank.models import User
-from bloodbank.otp_utils import (
+from bloodbank.utils import (
+    generate_backup_codes,
+    generate_manual_otp_code,
     generate_otp_secret,
     generate_qr_code,
+    get_otp_expiry_time,
     verify_otp_token,
-    generate_backup_codes
 )
 
 otp_bp = Blueprint("otp", __name__, url_prefix="/otp")

@@ -11,6 +11,16 @@ from bloodbank.extensions import db
 from bloodbank.models import BloodRequest, Donor, User  
 from datetime import datetime, date
 import re
+from bloodbank.services.donor_service import update_donor_profile
+from bloodbank.services.user_service import (
+    change_password as user_change_password,
+    confirm_phone_otp as user_confirm_phone_otp,
+    send_phone_verification as user_send_phone_verification,
+    set_auth0_password as user_set_auth0_password,
+    submit_blood_request,
+    update_avatar as user_update_avatar,
+    update_profile_details as user_update_profile_details,
+)
 
 user_bp = Blueprint("user", __name__)
 
@@ -70,15 +80,35 @@ def profile():
         action = request.form.get("action", "details")
 
         if action == "details":
-            return _update_profile_details(user)
+            result = user_update_profile_details(user.id, request.form, request.files)
+            flash(result["message"], result["category"])
+            return redirect(url_for("user.profile", tab="details"))
         if action == "password":
-            return _change_password(user)
+            result = user_change_password(
+                user.id,
+                request.form.get("current_password", ""),
+                request.form.get("new_password", ""),
+                request.form.get("confirm_password", ""),
+            )
+            flash(result["message"], result["category"])
+            return redirect(url_for("user.profile", tab="security"))
         if action == "set_password":           # <-- ADD THIS
-            return _set_auth0_password(user)
+            result = user_set_auth0_password(
+                user.id,
+                request.form.get("new_password", ""),
+                request.form.get("confirm_password", ""),
+                session,
+            )
+            flash(result["message"], result["category"])
+            return redirect(url_for("user.profile", tab="security"))
         if action == "donor":
-            return _update_donor_profile(user, donor)
+            result = update_donor_profile(user.id, request.form)
+            flash(result["message"], result["category"])
+            return redirect(url_for("user.profile", tab="donor"))
         if action == "update_avatar":                # <-- ADD THIS
-            return _update_avatar(user)
+            result = user_update_avatar(user.id, request.files.get("profile_pic"))
+            flash(result["message"], result["category"])
+            return redirect(url_for("user.profile"))
 
         flash("Invalid form submission.", "danger")
 
@@ -89,6 +119,15 @@ def profile():
         blood_groups=BLOOD_GROUPS,
         role_label=ROLE_LABELS.get(user.role, user.role.title()),
     )
+
+
+@user_bp.route("/verify-phone")
+@login_required
+def verify_phone_page():
+    user = db.session.get(User, session["user_id"])
+    if not user:
+        return redirect(url_for("auth.login"))
+    return render_template("verify-phone.html", phone=user.phone)
 
 
 def _update_profile_details(user):
@@ -183,78 +222,9 @@ def _change_password(user):
 @verified_required
 def request_blood():
     if request.method == "POST":
-        blood_group = request.form.get("blood_group", "").strip()
-        quantity_raw = request.form.get("quantity", "").strip()
-        urgency = request.form.get("urgency", "normal").strip()
-        reason = request.form.get("reason", "").strip()
-
-        # 1. Basic Form Validation
-        if blood_group not in BLOOD_GROUPS:
-            flash("Please select a valid blood group.", "danger")
-            return redirect(url_for("user.request_blood"))
-
-        if urgency not in URGENCY_LEVELS:
-            urgency = "normal"
-
-        if not reason:
-            flash("Please provide a reason for the request.", "danger")
-            return redirect(url_for("user.request_blood"))
-
-        try:
-            quantity = int(quantity_raw)
-            if quantity <= 0:
-                raise ValueError
-        except (TypeError, ValueError):
-            flash("Quantity must be a positive number.", "danger")
-            return redirect(url_for("user.request_blood"))
-
-        # 2. Requisition Document Handling
-        if 'requisition_doc' not in request.files:
-            flash("Doctor's requisition document is required.", "danger")
-            return redirect(request.url)
-            
-        file = request.files['requisition_doc']
-        
-        if file.filename == '':
-            flash("No document selected for uploading.", "danger")
-            return redirect(request.url)
-
-        unique_filename = None
-        if file and allowed_file(file.filename):
-            original_filename = secure_filename(file.filename)
-            unique_filename = f"{uuid.uuid4().hex}_{original_filename}"
-            
-            # Use configured upload folder, or default to instance/uploads/requisitions
-            upload_folder = current_app.config.get(
-                'UPLOAD_FOLDER', 
-                os.path.join(current_app.instance_path, 'uploads', 'requisitions')
-            )
-            
-            # Ensure directory exists before saving
-            os.makedirs(upload_folder, exist_ok=True)
-            
-            file_path = os.path.join(upload_folder, unique_filename)
-            file.save(file_path)
-        else:
-            flash("Invalid file type. Please upload a PDF, JPG, or PNG.", "danger")
-            return redirect(request.url)
-
-        # 3. Create Database Record
-        blood_req = BloodRequest(
-            user_id=session["user_id"],
-            blood_group=blood_group,
-            quantity=quantity,
-            urgency=urgency,
-            reason=reason,
-            requisition_doc=unique_filename,
-            is_verified=False
-        )
-        
-        db.session.add(blood_req)
-        db.session.commit()
-        
-        flash("Blood request submitted successfully. Awaiting admin verification.", "success")
-        return redirect(url_for("user.dashboard"))
+        result = submit_blood_request(session["user_id"], request.form, request.files)
+        flash(result["message"], result["category"])
+        return redirect(url_for(result["redirect"]))
 
     return render_template("request-blood.html", blood_groups=BLOOD_GROUPS)
 
@@ -269,101 +239,29 @@ def is_moderate_password(password):
 @user_bp.route("/verify-phone/send", methods=["POST"])
 @login_required
 def send_phone_verification():
-    user = db.session.get(User, session["user_id"])
-    
-    if not user.phone:
-        flash("Please update your profile with a valid phone number first.", "danger")
-        return redirect(url_for("user.profile"))
-        
-    # 1. Generate 6-digit code and 5-min expiry
-    otp_code = generate_manual_otp_code()
-    user.manual_otp_code = otp_code
-    user.manual_otp_expires_at = get_otp_expiry_time(300)
-    db.session.commit()
-    
-    # 2. Fire the SMS
-    if send_sms_otp(user.phone, otp_code):
-        flash(f"Verification code sent to {user.phone}", "success")
-    else:
-        flash("Failed to send SMS. Please try again later.", "danger")
-        
-    return redirect(url_for("user.verify_phone_page")) # Redirect to the UI where they enter the code
+    result = user_send_phone_verification(session["user_id"])
+    if result["message"]:
+        flash(result["message"], result["category"])
+    return redirect(url_for("user.verify_phone_page"))
 
 
 @user_bp.route("/verify-phone/confirm", methods=["POST"])
 @login_required
 def confirm_phone():
-    user = db.session.get(User, session["user_id"])
-    entered_code = request.form.get("otp_code").strip()
-    
-    # Validate code and check expiry
-    if user.manual_otp_code == entered_code and user.manual_otp_expires_at > datetime.now():
-        user.phone_verified = True
-        user.manual_otp_code = None  # Clear the code for security
-        user.manual_otp_expires_at = None
-        db.session.commit()
-        
-        flash("Phone number successfully verified! You now have full access.", "success")
+    result = user_confirm_phone_otp(session["user_id"], request.form.get("otp_code", "").strip())
+    flash(result["message"], result["category"])
+    if result["success"]:
         return redirect(url_for("user.dashboard"))
-    else:
-        flash("Invalid or expired OTP.", "danger")
-        return redirect(url_for("user.verify_phone_page"))
+    return redirect(url_for("user.verify_phone_page"))
     
 def _update_avatar(user):
-    if 'profile_pic' not in request.files:
-        flash("No file selected.", "danger")
-        return redirect(url_for("user.profile"))
-        
-    file = request.files['profile_pic']
-    
-    if file.filename == '':
-        flash("No file selected.", "danger")
-        return redirect(url_for("user.profile"))
-        
-    if file and allowed_file(file.filename):
-        original_filename = secure_filename(file.filename)
-        # Create a unique filename using UUID to prevent caching issues
-        unique_filename = f"avatar_{user.id}_{uuid.uuid4().hex[:8]}_{original_filename}"
-        
-        # Ensure the directory exists in the static folder
-        upload_folder = os.path.join(current_app.root_path, 'static', 'uploads', 'profiles')
-        os.makedirs(upload_folder, exist_ok=True)
-        
-        # Save the file
-        file_path = os.path.join(upload_folder, unique_filename)
-        file.save(file_path)
-        
-        # Update database
-        user.profile_pic = unique_filename
-        db.session.commit()
-        
-        flash("Profile picture updated successfully!", "success")
-    else:
-        flash("Invalid file type. Please upload a JPG or PNG.", "danger")
-        
+    result = user_update_avatar(user.id, request.files.get("profile_pic"))
+    flash(result["message"], result["category"])
     return redirect(url_for("user.profile"))
 
 def _set_auth0_password(user):
-    new_password = request.form.get("new_password", "")
-    confirm_password = request.form.get("confirm_password", "")
-    
-    # 1. Validation Checks
-    if not is_moderate_password(new_password):
-        flash("Password must be at least 8 characters long and include an uppercase letter, a lowercase letter, and a number.", "danger")
-        return redirect(url_for("user.profile", tab="security"))
-        
-    if new_password != confirm_password:
-        flash("New passwords do not match.", "danger")
-        return redirect(url_for("user.profile", tab="security"))
-        
-    # 2. Save the new password
-    user.set_password(new_password)
-
-    user.has_local_password = True
-
-    db.session.commit()
-    session['local_password_set'] = True
-    flash("Local password set successfully! You can now log in using either Google or your email.", "success")
+    result = user_set_auth0_password(user.id, request.form.get("new_password", ""), request.form.get("confirm_password", ""), session)
+    flash(result["message"], result["category"])
     return redirect(url_for("user.profile", tab="security"))
 
 def calculate_age(born):
