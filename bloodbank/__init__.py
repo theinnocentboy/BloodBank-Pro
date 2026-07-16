@@ -2,15 +2,16 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 from flask import Flask, session, redirect, url_for, flash
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Base directory setup
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Load environment variables[cite: 4]
+# Load environment variables
 env_file = BASE_DIR / ".env"
 load_dotenv(dotenv_path=str(env_file))
 
-# Import your configurations and extensions[cite: 4]
+# Import your configurations and extensions
 from bloodbank.config import Config
 from bloodbank.extensions import db
 from bloodbank.models import User
@@ -27,14 +28,18 @@ def create_app(config_class=Config):
     )
     app.config.from_object(config_class)
 
+    # --- RENDER & AWS DEPLOYMENT PROXY FIX ---
+    # This forces Flask to respect HTTPS headers sent by Render's reverse proxy
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
     os.makedirs(app.instance_path, exist_ok=True)
 
     db.init_app(app)
     
-    # Initialize Auth0[cite: 4]
+    # Initialize Auth0
     init_auth0(app)
 
-    # Register all blueprints[cite: 4]
+    # Register all blueprints
     register_blueprints(app)
 
     # --- GLOBAL SECURITY GATEKEEPER ---
@@ -58,15 +63,14 @@ def create_app(config_class=Config):
                 if user_role in ['admin', 'superadmin']:
                     return redirect(url_for('admin.admin_login'))
                 else:
-                    # REPLACE 'auth.login' with the actual name of your user login route
                     return redirect(url_for('auth.login'))
 
-    # Make config available to all templates[cite: 4]
+    # Make config available to all templates
     @app.context_processor
     def inject_config():
         return dict(config=app.config)
 
-    # Database initialization[cite: 4]
+    # Database initialization
     with app.app_context():
         db.create_all()
         seed_database()
