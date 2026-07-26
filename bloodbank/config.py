@@ -18,7 +18,17 @@ class Config:
     instance_path.mkdir(parents=True, exist_ok=True)
     db_path = instance_path / 'blood.db'
     
-    SQLALCHEMY_DATABASE_URI = f"sqlite:///{db_path}"
+    # --- POSTGRESQL MIGRATION LOGIC ---
+    db_url = os.environ.get("DATABASE_URL")
+
+    # SQLAlchemy 1.4+ requires 'postgresql://' instead of 'postgres://' 
+    if db_url and db_url.startswith("postgres://"):
+        db_url = db_url.replace("postgres://", "postgresql://", 1)
+
+    # Set the URI: use PostgreSQL if available, otherwise fallback to local SQLite
+    SQLALCHEMY_DATABASE_URI = db_url or f"sqlite:///{db_path}"
+    # ----------------------------------
+    
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # Auth0 Configuration
@@ -46,7 +56,7 @@ class Config:
     MAX_CONTENT_LENGTH = 5 * 1024 * 1024  # 5MB max file size
     ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg'}
 
-    # Add this under your other configurations in config.py
+    # Twilio Configuration
     TWILIO_ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID", "")
     TWILIO_AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN", "")
     TWILIO_PHONE_NUMBER = os.environ.get("TWILIO_PHONE_NUMBER", "")

@@ -43,7 +43,14 @@ def login_user(form, session_obj=session):
     if not login_id or not password:
         return _response(False, "Username and password are required.", "danger", redirect="auth.login")
 
-    user = User.query.filter((User.username == login_id) | (User.email == login_id)).first()
+    # 1. Define the lowercase string properly
+    login_id_lower = login_id.lower()
+    
+    # 2. Pass that variable into the ilike() methods
+    user = User.query.filter(
+        (User.username.ilike(login_id_lower)) | 
+        (User.email.ilike(login_id_lower))
+    ).first()
     if not user or not user.check_password(password):
         return _response(False, "Invalid username or password.", "danger", redirect="auth.login")
 
@@ -126,7 +133,10 @@ def verify_otp(form, session_obj=session):
 
 def register_user(form, session_obj=session):
     username = form.get("username", "").strip()
-    email = form.get("email", "").strip()
+    
+    # --- FIX 4: Force the incoming registration email to lowercase ---
+    email = form.get("email", "").strip().lower() 
+    
     password = form.get("password", "")
     full_name = form.get("full_name", "").strip()
     phone_input = form.get("phone", "").strip()
@@ -153,7 +163,7 @@ def register_user(form, session_obj=session):
         return _response(False, "Username must be at least 3 characters.", "danger", redirect="auth.register")
 
     username_user = User.query.filter_by(username=username).first()
-    email_user = User.query.filter_by(email=email).first()
+    email_user = User.query.filter(User.email.ilike(email)).first()
 
     if username_user and email_user and username_user.id != email_user.id:
         return _response(False, "That username and email already belong to different accounts.", "danger", redirect="auth.register")
@@ -162,7 +172,9 @@ def register_user(form, session_obj=session):
     if existing_user and existing_user.email_verified:
         if username_user:
             return _response(False, "Username already exists.", "danger", redirect="auth.register")
-        return _response(False, "Email already registered.", "danger", redirect="auth.register")
+            
+        # --- FIX 5: Redirect to the login page if the email is already registered ---
+        return _response(False, "This email is already registered. Please log in.", "warning", redirect="auth.login")
 
     if role not in VALID_ROLES:
         role = "user"
@@ -207,7 +219,6 @@ def register_user(form, session_obj=session):
         "redirect": "auth.verify_email_gate",
         "flash_messages": flash_messages,
     }
-
 
 def verify_email_gate(form, session_obj=session):
     pending_user_id = session_obj.get("pending_user_id")

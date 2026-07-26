@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import os
+import requests
 import re
 import secrets
 import smtplib
@@ -15,6 +16,7 @@ from io import BytesIO
 import pyotp
 import qrcode
 from flask import current_app
+
 
 
 def calculate_age(born):
@@ -49,34 +51,46 @@ def allowed_file(filename, allowed_extensions=None):
 
 
 def send_real_email(recipient_email, reset_url):
-    """Send a password-reset email using the configured SMTP account."""
-    sender_email = os.environ.get("SMTP_USERNAME", "")
-    app_password = os.environ.get("SMTP_PASSWORD", "")
+    """Send a password-reset email using the Resend HTTP API."""
+    api_key = os.environ.get("RESEND_API_KEY", "")
+    sender_email = "noreply@bloodbankpro.software"
 
-    msg = MIMEMultipart()
-    msg["From"] = sender_email
-    msg["To"] = recipient_email
-    msg["Subject"] = "BloodBank - Password Reset Request"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
 
-    body = f"""
-    Hello,
-
-    You have requested to reset your password. Click the link below to set a new one:
-
-    {reset_url}
-
-    If you did not make this request, please ignore this email.
-    """
-    msg.attach(MIMEText(body, "plain"))
+    payload = {
+        "from": f"BloodBank Pro <{sender_email}>",
+        "to": [recipient_email],
+        "subject": "BloodBank Pro - Password Reset Request",
+        "html": f"""
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+            <h2>Password Reset Request</h2>
+            <p>Hello,</p>
+            <p>You have requested to reset your password. Click the button below to set a new one:</p>
+            <p style="margin: 20px 0;">
+                <a href="{reset_url}" style="background-color: #e63946; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                    Reset Password
+                </a>
+            </p>
+            <p style="color: #666; font-size: 12px;">If the button above doesn't work, copy and paste this URL into your browser:</p>
+            <p style="color: #666; font-size: 12px;">{reset_url}</p>
+            <p style="color: #999; font-size: 12px; margin-top: 20px;">If you did not make this request, please ignore this email.</p>
+        </div>
+        """
+    }
 
     try:
-        server = smtplib.SMTP("smtp.gmail.com", 587)
-        server.starttls()
-        server.login(sender_email, app_password)
-        server.send_message(msg)
-        server.quit()
-        return True
-    except Exception:
+        response = requests.post(
+            "https://api.resend.com/emails",
+            json=payload,
+            headers=headers,
+            timeout=5
+        )
+        return response.status_code == 200
+    except Exception as e:
+        print(f"Password reset email error: {e}")
         return False
 
 

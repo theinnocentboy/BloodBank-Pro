@@ -35,6 +35,10 @@ auth_bp = Blueprint("auth", __name__)
 def login():
     if request.method == "POST":
         result = auth_login_user(request.form, session)
+
+        if result.get("message"):
+            flash(result["message"], result.get("category", "info"))
+            
         for category, message in result.get("flash_messages", []):
             flash(message, category)
         if result.get("redirect"):
@@ -61,6 +65,9 @@ def verify_otp():
 def register():
     if request.method == "POST":
         result = auth_register_user(request.form, session)
+        if result.get("message"):
+            flash(result["message"], result.get("category", "info"))
+            
         for category, message in result.get("flash_messages", []):
             flash(message, category)
         if result.get("redirect"):
@@ -107,44 +114,44 @@ def auth0_callback():
             flash("Failed to retrieve user information from Auth0.", "danger")
             return redirect(url_for("auth.login"))
         
-        # Extract basic user info from your helper
         user_data = get_auth0_user_info(userinfo)
-        email = user_data['email']
+        
         full_name = user_data['full_name']
         auth0_id = user_data['auth0_id']
 
-        # --- NEW: Extract Picture, Gender, and DOB directly from userinfo ---
         picture_url = userinfo.get("picture")
         auth_gender = userinfo.get("gender")
         auth_dob_raw = userinfo.get("birthdate")
 
-        # Parse DOB safely into a Python date object
         auth_dob = None
         if auth_dob_raw:
             try:
                 auth_dob = datetime.strptime(auth_dob_raw, "%Y-%m-%d").date()
             except ValueError:
-                pass # Failsafe if the date format is unexpected
-        # --------------------------------------------------------------------
+                pass 
         
-        # Find or create user
-        user = User.query.filter_by(email=email).first()
+        # --- THE ULTIMATE FIX: Force lowercase AND strip hidden whitespace ---
+        email = user_data['email'].lower().strip() 
+        
+        # --- DIAGNOSTIC PRINTS ---
+        print(f"\n--- AUTH0 DEBUG ---")
+        print(f"Exact email from Auth0: '{email}'")
+        
+        user = User.query.filter(User.email.ilike(email)).first()
+        
+        print(f"Did the database find a match? {user}")
+        print(f"-------------------\n")
         
         if user:
             # Update existing user name if needed
             user.full_name = full_name
-            # NEW: Add the picture to existing users if they don't have one
             if not user.profile_pic and picture_url:
                 user.profile_pic = picture_url
-
             if not user.gender and auth_gender:
                 user.gender = auth_gender.capitalize()
-                
             if not user.dob and auth_dob:
                 user.dob = auth_dob
-            # -----------------------------------------------------
                 
-            # Link the Auth0 ID so they are recognized as a social account
             user.auth0_id = auth0_id
             db.session.commit()
         else:
@@ -161,23 +168,21 @@ def auth0_callback():
                 full_name=full_name,
                 email_verified=True,
                 role='user',
-                phone=None,  # Explicitly set to None for new OAuth users
-                profile_pic=picture_url,                                  # <-- NEW
-                gender=auth_gender.capitalize() if auth_gender else None, # <-- NEW
-                dob=auth_dob                                              # <-- NEW
+                phone=None,
+                profile_pic=picture_url,
+                gender=auth_gender.capitalize() if auth_gender else None,
+                dob=auth_dob                                              
             )
             user.set_password(os.urandom(32).hex())
             db.session.add(user)
             db.session.commit()
         
-        # Set session data
         session.clear()
         session["user_id"] = user.id
         session["username"] = user.username
         session["role"] = user.role
         session["auth0_id"] = auth0_id
         
-        # Check for missing phone number (Mandatory for BloodBank)
         if not user.phone:
             flash("Welcome! Please complete your profile by adding your phone number.", "info")
             
@@ -321,33 +326,3 @@ def reset_password(token):
 
     return render_template('reset-password.html', token=token)
 
-def send_real_email(recipient_email, reset_url):
-    sender_email = os.environ.get("SMTP_USERNAME", "")  # Put your email here
-    app_password = os.environ.get("SMTP_PASSWORD", "") # Put your App Password here
-    
-    msg = MIMEMultipart()
-    msg['From'] = sender_email
-    msg['To'] = recipient_email
-    msg['Subject'] = "BloodBank - Password Reset Request"
-    
-    body = f"""
-    Hello,
-    
-    You have requested to reset your password. Click the link below to set a new one:
-    
-    {reset_url}
-    
-    If you did not make this request, please ignore this email.
-    """
-    msg.attach(MIMEText(body, 'plain'))
-    
-    try:
-        server = smtplib.SMTP('smtp.gmail.com', 587)
-        server.starttls()
-        server.login(sender_email, app_password)
-        server.send_message(msg)
-        server.quit()
-        return True
-    except Exception as e:
-        print(f"Email failed to send: {e}")
-        return False
