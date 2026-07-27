@@ -47,7 +47,7 @@ class ChatbotAssistant:
                 'response': 'For emergency blood requests: Click "Request Blood" and select "Emergency". Our AI will prioritize your request and notify nearby donors immediately.'
             },
             'blood_groups': {
-                'keywords': ['blood group', 'blood type', 'o\+', 'a\+', 'b\+', 'ab\+', 'o\-', 'a\-', 'b\-', 'ab\-'],
+                'keywords': ['blood group', 'blood type', 'o+', 'a+', 'b+', 'ab+', 'o-', 'a-', 'b-', 'ab-'],
                 'response': 'Blood groups: O+ (universal donor), O- (emergency donor), AB+ (universal recipient), AB- (rare). Check your type with our search tool!'
             },
             'search': {
