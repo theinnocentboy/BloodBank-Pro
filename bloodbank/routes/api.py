@@ -50,7 +50,7 @@ def chatbot():
         client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
         
         completion = client.chat.completions.create(
-            model="llama-3.1-8b-instant",  # <-- Update this line right here
+            model="openai/gpt-oss-20b",  # <-- Update this line right here
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_message}
